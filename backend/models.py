@@ -1,4 +1,4 @@
-from sqlalchemy import DateTime,Date,Computed,Enum,Boolean,Column,ForeignKey,String,Integer,CheckConstraint,PrimaryKeyConstraint
+from sqlalchemy import Text,DateTime,Date,Computed,Enum,Boolean,Column,ForeignKey,String,Integer,CheckConstraint,PrimaryKeyConstraint
 from database import Base
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -8,10 +8,13 @@ class Household(Base):
 
     meter_no=Column(Integer,primary_key=True,index=True)
     owner_name=Column(String,nullable=False,index=True)
+    address=Column(Text,index=True)
     members_count=Column(Integer,CheckConstraint('members_count>0'),nullable=False,index=True)
     water_allowed=Column(Integer,CheckConstraint('water_allowed>0'),index=True)
-    supply_status=Column(Enum('Active','Inactive',name='status'),index=True)
+    water_used=Column(Integer,CheckConstraint('water_used>0'),index=True,default=0)
+    supply_status=Column(Enum('Active','Inactive',name='status'),index=True,default="Active")
     location_name=Column(String,ForeignKey('location.location_name'),nullable=False,index=True)
+    last_payment=Column(Date,index=True,default=None)
 
     contacts=relationship("Contacts",back_populates="household",cascade="all, delete-orphan")
     location=relationship("Location",back_populates="household")
