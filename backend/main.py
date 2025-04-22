@@ -55,20 +55,19 @@ class HouseholdBase(BaseModel):
 class HouseholdCreate(HouseholdBase):
     pass
 
-class HouseholdUpdate(HouseholdBase):
-    meter_no: int
-    owner_name: str = None
-    address: str = None
-    members_count: int = None
-    water_allowed: int = None
-    water_used: int = None
-    supply_status: str = None
-    location_name: str = None
-    last_payment: str = None
+class HouseholdUpdate(BaseModel):
+    owner_name: Optional[str] = None
+    address: Optional[str] = None
+    members_count: Optional[int] = None
+    water_allowed: Optional[int] = None
+    water_used: Optional[int] = None
+    supply_status: Optional[str] = None
+    location_name: Optional[str] = None
+    last_payment: Optional[date] = None
+    contacts: Optional[List[ContactOut]] = None
 
     class Config:
         from_attributes = True
-
 
 class HouseholdOut(HouseholdBase):
     
@@ -255,56 +254,52 @@ def create_household(household: HouseholdCreate, db: Session = Depends(get_db)):
     except SQLAlchemyError as e:
         db.rollback()  # Rollback in case of error
         raise HTTPException(status_code=500, detail="Database error occurred during insert: " + str(e))
-    
-@app.patch("/update/household", response_model=HouseholdOut)
-def update_household_records(household: HouseholdUpdate, contacts: List[ContactCreate], db: Session = Depends(get_db)):
-    # Check if the household with the given meter_no exists
-    existing_household = db.query(Household).filter_by(meter_no=household.meter_no).first()
-    if not existing_household:
+
+
+@app.patch("/households/{meter_no}", response_model=HouseholdUpdate)
+def update_household(meter_no: int, update_data: HouseholdUpdate, db: Session = Depends(get_db)):
+    household = db.query(Household).filter(Household.meter_no == meter_no).first()
+
+    if not household:
         raise HTTPException(status_code=404, detail="Household not found")
 
-    # Update household fields if provided
-    if household.owner_name:
-        existing_household.owner_name = household.owner_name
-    if household.address:
-        existing_household.address = household.address
-    if household.members_count:
-        existing_household.members_count = household.members_count
-    if household.water_allowed:
-        existing_household.water_allowed = household.water_allowed
-    if household.water_used:
-        existing_household.water_used = household.water_used
-    if household.supply_status:
-        existing_household.supply_status = household.supply_status
-    if household.location_name:
-        existing_household.location_name = household.location_name
-    if household.last_payment:
-        existing_household.last_payment = household.last_payment
+    update_dict = update_data.model_dump(exclude_unset=True)
 
-    # Now handle the contacts update
-    # Clear existing contacts and add new ones
-    existing_household.contacts.clear()
+    # Handle contacts separately
+    if "contacts" in update_dict and update_data.contacts is not None:
+        db.query(Contacts).filter(Contacts.meter_no == meter_no).delete()
+        db.flush()
 
-    for contact in contacts:
-        # The meter_no will be taken from the outer household attributes
-        contact_number = contact.contact_number
-        
-        # Ensure that the contact number is unique for this household
-        existing_contact = db.query(Contacts).filter_by(meter_no=household.meter_no, contact_number=contact_number).first()
-        if existing_contact:
-            raise HTTPException(status_code=400, detail=f"Contact number {contact_number} already exists for this household")
-        
-        # Create new contact with the same meter_no as the household
-        new_contact = Contacts(
-            meter_no=household.meter_no,  # Use the meter_no from the household
-            contact_number=contact_number
-        )
-        existing_household.contacts.append(new_contact)
+        for contact in update_data.contacts:
+            contact_number = contact.get("contact_number") if isinstance(contact, dict) else contact.contact_number
 
-    # Commit the changes to the database
+            new_contact = Contacts(
+                meter_no=meter_no,
+                contact_number=contact_number
+            )
+            db.add(new_contact)
+
+    # Update only non-None values
+    for field, value in update_dict.items():
+        if field == "contacts" or value is None:
+            continue
+        setattr(household, field, value)
+
     db.commit()
-    db.refresh(existing_household)
+    db.refresh(household)
 
-    return existing_household  # Return the updated household details
+    return household
 
+@app.delete("/households/{meter_no}", status_code=204)
+def delete_household(meter_no: int, db: Session = Depends(get_db)):
+    # Fetch the household object from the database
+    household = db.query(Household).filter(Household.meter_no == meter_no).first()
 
+    if not household:
+        raise HTTPException(status_code=404, detail="Household not found")
+
+    # Delete the household (cascade delete will handle related entries like contacts)
+    db.delete(household)
+    db.commit()
+
+    return {"detail": "Household deleted successfully"}
