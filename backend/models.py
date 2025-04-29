@@ -14,16 +14,16 @@ class Household(Base):
     water_used=Column(Integer,CheckConstraint('water_used>0'),index=True,default=0)
     supply_status=Column(Enum('Active','Inactive',name='status'),index=True,default="Active")
     location_name=Column(String,ForeignKey('location.location_name'),nullable=False,index=True)
-    last_payment=Column(Date,index=True,default=None)
+    last_payment=Column(Date,index=True,default=func.now())
 
     contacts=relationship("Contacts",back_populates="household",cascade="all, delete-orphan")
     location=relationship("Location",back_populates="household")
-    servicerequest=relationship("ServiceRequest",back_populates="household")
+    servicerequest=relationship("ServiceRequest",back_populates="household",cascade="all, delete-orphan")
     watercutoff=relationship("WaterCutoff",back_populates="household",cascade="all, delete-orphan")
     fine=relationship("Fine",back_populates="household")
 
 
-
+   
 class Contacts(Base):
     __tablename__='contacts'
     meter_no=Column(Integer,ForeignKey('household.meter_no'),index=True,nullable=False)
@@ -60,11 +60,15 @@ class Waterboard(Base):
 class ServiceRequest(Base):
     __tablename__='servicerequest'
 
-    id=Column(Integer,primary_key=True,autoincrement=True,index=True)
+    
     request_type=Column(String,index=True)
     request_date=Column(DateTime(timezone=True), server_default=func.now(),index=True)
-    request_status=Column(Enum('Pending','Resolved','Rejected',name='request'),index=True)
-    meter_no=Column(Integer,ForeignKey("household.meter_no",ondelete="SET NULL"),index=True,nullable=True)
+    request_status=Column(Enum('Pending','Resolved','Rejected',name='request'),index=True,default='Pending')
+    meter_no=Column(Integer,ForeignKey("household.meter_no"),index=True,nullable=True)
+
+    __table_args__ = (
+        PrimaryKeyConstraint('meter_no', 'request_type'),
+    )
 
     household=relationship("Household",back_populates="servicerequest")
 
@@ -84,7 +88,7 @@ class Fine(Base):
 
     id=Column(Integer,primary_key=True,autoincrement=True,index=True)
     overdue=Column(Integer,CheckConstraint('overdue>0'),index=True,nullable=True)
-    payment_status=Column(Enum('Paid','Pending',name='transaction'),index=True)
+    payment_status=Column(Enum('Paid','Pending',name='transaction'),index=True,default='Pending')
     meter_no=Column(Integer,ForeignKey("household.meter_no"),index=True)
 
     household=relationship("Household",back_populates="fine")

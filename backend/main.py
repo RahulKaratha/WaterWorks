@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Request, Form,status
+from fastapi import FastAPI, HTTPException, Depends, Request, Form,status,Query
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -9,6 +9,8 @@ from typing import List, Annotated, Optional
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import date,datetime
 from enum import Enum
+from sqlalchemy.sql import func
+from pydanticModels import *
 
 
 import models
@@ -29,131 +31,6 @@ logger.info("SQL Query: %s", str(query))
 
 app = FastAPI()
 
-class ContactBase(BaseModel):
-    contact_number: str
-
-class ContactCreate(ContactBase):
-    pass
-
-class ContactOut(ContactBase):
-    contact_number: str
-    class Config:
-         from_attributes = True
-
-class HouseholdBase(BaseModel):
-    meter_no: int
-    owner_name: str
-    address: str
-    contacts: List[ContactOut] = []
-    members_count: Annotated[int, Field(strict=True, gt=0)]
-    water_allowed: Annotated[int, Field(strict=True, gt=0)]
-    water_used: Annotated[int, Field(strict=True, gt=0)]
-    supply_status: str
-    location_name: str
-    last_payment: Optional[date]
-
-class HouseholdCreate(HouseholdBase):
-    pass
-
-class HouseholdUpdate(BaseModel):
-    owner_name: Optional[str] = None
-    address: Optional[str] = None
-    members_count: Optional[int] = None
-    water_allowed: Optional[int] = None
-    water_used: Optional[int] = None
-    supply_status: Optional[str] = None
-    location_name: Optional[str] = None
-    last_payment: Optional[date] = None
-    contacts: Optional[List[ContactOut]] = None
-
-    class Config:
-        from_attributes = True
-
-class HouseholdOut(HouseholdBase):
-    
-
-    class Config:
-         from_attributes = True
-
-
-class LocationStatusEnum(str, Enum):
-    Scarcity = "Scarcity"
-    Shortage = "Shortage"
-    Sufficient = "Sufficient"
-    Surplus = "Surplus"
-
-# Base model for Location
-class LocationBase(BaseModel):
-    location_name: str
-    location_status: LocationStatusEnum
-    total_household: int
-    supply_id: int
-
-# Model for updating a Location
-class LocationUpdate(LocationBase):
-    pass
-
-# Model for returning Location details
-class LocationOut(LocationBase):
-    class Config:
-        from_attributes = True
-
-class WaterboardBase(BaseModel):
-    water_available:  Annotated[int, Field(strict=True, gt=0)]
-    water_allowed:  Annotated[int, Field(strict=True, gt=0)]
-    water_used: Annotated[int, Field(strict=True, gt=0)]
-
-
-class WaterboardOut(WaterboardBase):
-    supply_id: int
-    balance: Optional[int]
-    class Config:
-        from_attributes = True
-
-class ServiceRequestBase(BaseModel):
-    request_type: str
-    request_status: str
-    meter_no: Optional[int]
-
-class ServiceRequestCreate(ServiceRequestBase):
-    pass
-
-class ServiceRequestOut(ServiceRequestBase):
-    id: int
-    request_date: datetime
-    class Config:
-        from_attributes = True
-
-class WaterCutoffBase(BaseModel):
-    cutoff_date: date
-    reason: str
-    restoration_date: Optional[date]
-    meter_no: Optional[int]
-
-class WaterCutoffCreate(WaterCutoffBase):
-    pass
-
-class WaterCutoffOut(WaterCutoffBase):
-    id: int
-    class Config:
-        from_attributes = True
-
-class FineBase(BaseModel):
-    overdue:Annotated[int, Field(strict=True, gt=0)]
-    payment_status: str
-    meter_no: int
-
-class FineCreate(FineBase):
-    pass
-
-class FineOut(FineBase):
-    id: int
-    class Config:
-        from_attributes = True
-
-
-
-"""
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
@@ -168,7 +45,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Serve HTML templates
 templates = Jinja2Templates(directory="templates")
-"""
+
 # Create DB tables
 #models.Base.metadata.drop_all(bind=engine)
 models.Base.metadata.create_all(bind=engine)
@@ -185,6 +62,11 @@ def get_db():
 
 db_dependency = Annotated[Session, Depends(get_db)]
 
+@app.get("/", response_class=HTMLResponse)
+def serve_dashboard(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
+
 @app.get("/households/", response_model=List[HouseholdOut])
 def get_all_households(db: Session = Depends(get_db)):
     households = db.query(Household).all()  # Retrieve all household records
@@ -199,7 +81,7 @@ def get_households_by_location(location_name: str, db: Session = Depends(get_db)
     
     return households
 
-from fastapi import Query
+
 
 @app.get("/household/", response_model=HouseholdOut)
 def get_household_by_meter_no(meter_no: int, db: Session = Depends(get_db)):
@@ -303,3 +185,34 @@ def delete_household(meter_no: int, db: Session = Depends(get_db)):
     db.commit()
 
     return {"detail": "Household deleted successfully"}
+
+@app.post("/service-requests/", response_model=ServiceRequestCreate)
+async def raise_service_request(request: ServiceRequestCreate, db: Session = Depends(get_db)):
+    # Logic for raising or updating a service request (no auth yet)
+    household = db.query(Household).filter_by(meter_no=request.meter_no).first()
+    if household is None:
+        raise HTTPException(status_code=404, detail="Household not found")
+    
+    # Check if request already exists for this meter_no and request_type
+    existing_request = db.query(ServiceRequest).filter_by(meter_no=request.meter_no, request_type=request.request_type).first()
+    if existing_request:
+        # Update request_date if exists
+        existing_request.request_date = func.now()
+        db.commit()
+        return existing_request
+    else:
+        # Create a new request
+        new_request = ServiceRequest(
+            meter_no=request.meter_no,
+            request_type=request.request_type,
+            
+        )
+        db.add(new_request)
+        db.commit()
+        db.refresh(new_request)
+        return new_request
+    
+@app.get("/location/status",response_model=List[LocationResponse])
+async def current_status(db: Session = Depends(get_db)):
+    regions=db.query(models.Location).join(models.Waterboard,models.Waterboard.supply_id==models.Location.supply_id).all()
+    return regions
