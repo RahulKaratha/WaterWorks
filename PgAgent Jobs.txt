@@ -1,0 +1,58 @@
+CREATE EXTENSION pgagent;
+
+
+CREATE OR REPLACE FUNCTION apply_fines_and_cutoffs() RETURNS void AS $$
+DECLARE
+    h household%ROWTYPE;
+    days_overdue INTEGER;
+    fine_amount INTEGER;
+    existing_fine_id INTEGER;
+BEGIN
+    FOR h IN SELECT * FROM household LOOP
+        days_overdue := CURRENT_DATE - h.last_payment;
+
+        IF days_overdue > 50 THEN
+            fine_amount := ((days_overdue - 50) / 5) * 100;
+
+            SELECT id INTO existing_fine_id FROM fine
+            WHERE meter_no = h.meter_no AND payment_status = 'Pending';
+
+            IF existing_fine_id IS NULL THEN
+                INSERT INTO fine (meter_no, overdue, payment_status)
+                VALUES (h.meter_no, fine_amount, 'Pending');
+            ELSE
+                UPDATE fine SET overdue = fine_amount
+                WHERE id = existing_fine_id;
+            END IF;
+
+            IF days_overdue > 100 THEN
+                UPDATE household
+                SET supply_status = 'Inactive',
+                    water_allowed = 0
+                WHERE meter_no = h.meter_no;
+
+                IF NOT EXISTS (
+                    SELECT 1 FROM watercutoff
+                    WHERE meter_no = h.meter_no
+                    AND reason = 'Non payment of Bill and Fines'
+                ) THEN
+                    INSERT INTO watercutoff (
+                        cutoff_date,
+                        reason,
+                        restoration_date,
+                        meter_no
+                    )
+                    VALUES (
+                        h.last_payment + INTERVAL '100 days',
+                        'Non payment of Bill and Fines',
+                        NULL,
+                        h.meter_no
+                    );
+                END IF;
+            END IF;
+        END IF;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+

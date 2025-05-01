@@ -63,7 +63,11 @@ db_dependency = Annotated[Session, Depends(get_db)]
 
 @app.get("/", response_class=HTMLResponse)
 def serve_dashboard(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse("dashboard.html", {"request": request})
+
+@app.get("/update", response_class=HTMLResponse)
+def serve_dashboard(request: Request):
+    return templates.TemplateResponse("updatebill.html", {"request": request})
 
 
 @app.get("/households/", response_model=List[HouseholdOut])

@@ -102,19 +102,21 @@
         <button type="submit">Submit</button>
       </form>
       <div class="actions">
-        <a href="/templates/dashboard.html">Back to Dashboard</a>
+        <a href="/">Back to Dashboard</a>
       </div>
     </div>
 
     <script>
-      document.getElementById('updateBillForm').addEventListener('submit', function(event) {
-        event.preventDefault();
-        const meterNumber = document.getElementById('meterNumber').value;
-        const amount = document.getElementById('amount').value;
-        console.log('Meter Number:', meterNumber);
-        console.log('Amount:', amount);
-        window.location.href = '/templates/dashboard.html';
-      });
+      document
+        .getElementById("updateBillForm")
+        .addEventListener("submit", function (event) {
+          event.preventDefault();
+          const meterNumber = document.getElementById("meterNumber").value;
+          const amount = document.getElementById("amount").value;
+          console.log("Meter Number:", meterNumber);
+          console.log("Amount:", amount);
+          window.location.href = "/";
+        });
     </script>
   </body>
 </html>
