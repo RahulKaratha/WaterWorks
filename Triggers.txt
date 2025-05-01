@@ -1,0 +1,147 @@
+1. Trigger to Update Total Households in Location after insertion,deletion,and updation in Household
+
+CREATE OR REPLACE FUNCTION refresh_total_household()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- For DELETE or UPDATE (location_name may change)
+    IF (TG_OP = 'DELETE') THEN
+        UPDATE location
+        SET total_household = (
+            SELECT COUNT(*) FROM household WHERE location_name = OLD.location_name
+        )
+        WHERE location_name = OLD.location_name;
+    END IF;
+
+    -- For INSERT or UPDATE
+    IF (TG_OP = 'INSERT') OR (TG_OP = 'UPDATE') THEN
+        UPDATE location
+        SET total_household = (
+            SELECT COUNT(*) FROM household WHERE location_name = NEW.location_name
+        )
+        WHERE location_name = NEW.location_name;
+    END IF;
+
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE TRIGGER trg_refresh_household_insert
+AFTER INSERT ON household
+FOR EACH ROW
+EXECUTE FUNCTION refresh_total_household();
+
+CREATE TRIGGER trg_refresh_household_delete
+AFTER DELETE ON household
+FOR EACH ROW
+EXECUTE FUNCTION refresh_total_household();
+
+CREATE TRIGGER trg_refresh_household_update
+AFTER UPDATE OF location_name ON household
+FOR EACH ROW
+EXECUTE FUNCTION refresh_total_household();
+
+
+2. Update water allowed and water used in waterboard after insert,update and delete operations on household
+
+CREATE OR REPLACE FUNCTION update_waterboard_usage()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- If location_name changed, update both old and new supply IDs
+    IF TG_OP = 'UPDATE' AND NEW.location_name <> OLD.location_name THEN
+        -- Update OLD location's waterboard
+        UPDATE waterboard
+        SET 
+            water_allowed = (
+                SELECT COALESCE(SUM(h.water_allowed), 0)
+                FROM household h
+                JOIN location l ON h.location_name = l.location_name
+                WHERE l.supply_id = (
+                    SELECT supply_id FROM location WHERE location_name = OLD.location_name
+                )
+            ),
+            water_used = (
+                SELECT COALESCE(SUM(h.water_used), 0)
+                FROM household h
+                JOIN location l ON h.location_name = l.location_name
+                WHERE l.supply_id = (
+                    SELECT supply_id FROM location WHERE location_name = OLD.location_name
+                )
+            )
+        WHERE supply_id = (
+            SELECT supply_id FROM location WHERE location_name = OLD.location_name
+        );
+
+        -- Update NEW location's waterboard
+        UPDATE waterboard
+        SET 
+            water_allowed = (
+                SELECT COALESCE(SUM(h.water_allowed), 0)
+                FROM household h
+                JOIN location l ON h.location_name = l.location_name
+                WHERE l.supply_id = (
+                    SELECT supply_id FROM location WHERE location_name = NEW.location_name
+                )
+            ),
+            water_used = (
+                SELECT COALESCE(SUM(h.water_used), 0)
+                FROM household h
+                JOIN location l ON h.location_name = l.location_name
+                WHERE l.supply_id = (
+                    SELECT supply_id FROM location WHERE location_name = NEW.location_name
+                )
+            )
+        WHERE supply_id = (
+            SELECT supply_id FROM location WHERE location_name = NEW.location_name
+        );
+
+    ELSE
+        -- Standard logic for insert, delete, or updates not involving location change
+        UPDATE waterboard
+        SET 
+            water_allowed = (
+                SELECT COALESCE(SUM(h.water_allowed), 0)
+                FROM household h
+                JOIN location l ON h.location_name = l.location_name
+                WHERE l.supply_id = (
+                    SELECT supply_id FROM location WHERE location_name = COALESCE(NEW.location_name, OLD.location_name)
+                )
+            ),
+            water_used = (
+                SELECT COALESCE(SUM(h.water_used), 0)
+                FROM household h
+                JOIN location l ON h.location_name = l.location_name
+                WHERE l.supply_id = (
+                    SELECT supply_id FROM location WHERE location_name = COALESCE(NEW.location_name, OLD.location_name)
+                )
+            )
+        WHERE supply_id = (
+            SELECT supply_id FROM location WHERE location_name = COALESCE(NEW.location_name, OLD.location_name)
+        );
+    END IF;
+
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+-- INSERT
+CREATE TRIGGER trg_update_waterboard_after_insert
+AFTER INSERT ON household
+FOR EACH ROW
+EXECUTE FUNCTION update_waterboard_usage();
+
+-- UPDATE
+CREATE TRIGGER trg_update_waterboard_after_update
+AFTER UPDATE ON household
+FOR EACH ROW
+EXECUTE FUNCTION update_waterboard_usage();
+
+-- DELETE
+CREATE TRIGGER trg_update_waterboard_after_delete
+AFTER DELETE ON household
+FOR EACH ROW
+EXECUTE FUNCTION update_waterboard_usage();
+
+3. Generate fine for a household after 2 months of non payment of Bill
+
+

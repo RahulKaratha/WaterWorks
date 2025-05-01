@@ -24,7 +24,6 @@ from database import engine, SessionLocal
 import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
- # Log the SQL query
 logger.info("SQL Query: %s", str(query))
 
 '''
@@ -186,7 +185,20 @@ def delete_household(meter_no: int, db: Session = Depends(get_db)):
 
     return {"detail": "Household deleted successfully"}
 
-@app.post("/service-requests/", response_model=ServiceRequestCreate)
+
+@app.get("/servicerequest/{meter_no}")
+def get_requests_by_meter_no(meter_no: int, db: Session = Depends(get_db)):
+    requests = db.query(ServiceRequest).filter(ServiceRequest.meter_no == meter_no).all()
+    
+    if not requests:
+        raise HTTPException(status_code=404, detail="No service requests found for this meter number")
+    
+    return requests
+
+
+
+
+@app.post("/requests/raise", response_model=ServiceRequestCreate)
 async def raise_service_request(request: ServiceRequestCreate, db: Session = Depends(get_db)):
     # Logic for raising or updating a service request (no auth yet)
     household = db.query(Household).filter_by(meter_no=request.meter_no).first()
@@ -212,7 +224,87 @@ async def raise_service_request(request: ServiceRequestCreate, db: Session = Dep
         db.refresh(new_request)
         return new_request
     
+
+@app.patch("/servicerequest/{meter_no}/{request_type}")
+def update_status(
+    meter_no: int,
+    request_type: str,
+    status: str
+    , db: Session = Depends(get_db)
+):
+    if status not in ["Pending", "Resolved", "Rejected"]:
+        raise HTTPException(status_code=400, detail="Invalid status")
+
+    req = db.query(ServiceRequest).filter_by(
+        meter_no=meter_no,
+        request_type=request_type
+    ).first()
+
+    if not req:
+        raise HTTPException(status_code=404, detail="Service request not found")
+
+    req.request_status = status
+    db.commit()
+    return {"message": "Status updated", "status": req.request_status}
+
+    
 @app.get("/location/status",response_model=List[LocationResponse])
-async def current_status(db: Session = Depends(get_db)):
+async def current_location_status(db: Session = Depends(get_db)):
     regions=db.query(models.Location).join(models.Waterboard,models.Waterboard.supply_id==models.Location.supply_id).all()
     return regions
+
+@app.get("/requests/view",response_model=List[ServiceRequestOut])
+async def view_requests(db: Session = Depends(get_db)):
+    requests=db.query(ServiceRequest).all()
+    return requests
+
+@app.get("/fines/{meterno}",response_model=FineOut)
+async def view_fine(meterno:int, db: Session = Depends(get_db)):
+    fineInfo=db.query(models.Fine).filter_by(meter_no=meterno).first()
+    return fineInfo
+
+@app.patch("/fines/{meter_no}/mark-paid", status_code=200)
+def mark_fine_as_paid(meter_no: int, db: Session = Depends(get_db)):
+    fine = db.query(Fine).filter(Fine.meter_no == meter_no, Fine.payment_status == 'Pending').first()
+    
+    if not fine:
+        raise HTTPException(status_code=404, detail="Pending fine not found for this meter number")
+    
+    if fine.payment_status == 'Paid':
+        return {"message": "Fine already Paid"}
+    
+    fine.payment_status = 'Paid'
+    db.commit()
+    db.refresh(fine)
+
+    
+    return {
+        "message": "Fine payment status updated to Paid",
+        "fine_id": fine.id,
+        "meter_no": fine.meter_no,
+        "status": fine.payment_status
+    }
+
+@app.get("/watercutoff", response_model=List[WaterCutoffOut])
+def get_all_water_cutoffs(db: Session = Depends(get_db)):
+    return db.query(WaterCutoff).all()
+
+@app.get("/watercutoff/{meter_no}", response_model=List[WaterCutoffOut])
+def get_cutoff_by_meter_no(meter_no: int, db: Session = Depends(get_db)):
+    records = db.query(WaterCutoff).filter(WaterCutoff.meter_no == meter_no).all()
+    if not records:
+        raise HTTPException(status_code=404, detail="No water cutoff record found for this meter number")
+    return records
+
+@app.patch("/watercutoff/{cutoff_id}/restore", status_code=200)
+def update_restoration_date(cutoff_id: int, restoration_date: date, db: Session = Depends(get_db)):
+    record = db.query(WaterCutoff).filter(WaterCutoff.id == cutoff_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Cutoff record not found")
+
+    record.restoration_date = restoration_date
+    db.commit()
+    db.refresh(record)
+    return {"message": "Restoration date updated", "id": record.id, "restoration_date": record.restoration_date}
+
+
