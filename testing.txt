@@ -1,0 +1,106 @@
+TESTING:
+
+
+DELETE FROM fine;
+DELETE FROM servicerequest;
+DELETE FROM watercutoff;
+DELETE FROM contacts;
+DELETE FROM household;
+DELETE FROM location;
+DELETE FROM waterboard;
+
+-- STEP 1: Insert into Waterboard
+INSERT INTO waterboard (supply_id, water_available, water_allowed, water_used)
+VALUES 
+(1, 10000, 0, 0),
+(2, 8000, 0, 0);
+
+-- STEP 2: Insert into Location
+INSERT INTO location (location_name, location_status, total_household, supply_id)
+VALUES 
+('Mysore', 'Sufficient', 0, 1),
+('Bangalore', 'Shortage', 0, 2);
+
+-- STEP 3: Insert Multiple Households (Trigger 1: updates totals + allowed water)
+INSERT INTO household (
+    meter_no, owner_name, members_count, water_allowed,
+    supply_status, location_name, last_payment_date
+)
+VALUES 
+(201, 'Ridhi Shetty', 4, 500, 'Active', 'Mysore', CURRENT_DATE),
+(202, 'Aman Jain', 3, 400, 'Active', 'Mysore', CURRENT_DATE - INTERVAL '50 days'),
+(203, 'Sara Khan', 5, 600, 'Active', 'Mysore', CURRENT_DATE - INTERVAL '100 days'),
+(301, 'Meera Rao', 2, 300, 'Active', 'Bangalore', CURRENT_DATE - INTERVAL '110 days'),
+(302, 'Ravi Kumar', 6, 700, 'Active', 'Bangalore', CURRENT_DATE - INTERVAL '31 days');
+
+-- STEP 4: Insert Contacts for Testing
+INSERT INTO contacts (meter_no, contact_number)
+VALUES 
+(201, '9876543210'),
+(202, '9876543211'),
+(203, '9876543212'),
+(301, '9876543213'),
+(302, '9876543214');
+
+-- STEP 5: Trigger 2 - Generate fine (from 202)
+UPDATE household
+SET last_payment_date = CURRENT_DATE - INTERVAL '60 days'
+WHERE meter_no = 202;
+
+-- STEP 6: Trigger 3 - Cutoff water (203 + 301 are overdue > 90 days)
+UPDATE household
+SET last_payment_date = CURRENT_DATE - INTERVAL '100 days'
+WHERE meter_no = 203;
+
+UPDATE household
+SET last_payment_date = CURRENT_DATE - INTERVAL '110 days'
+WHERE meter_no = 301;
+
+-- STEP 7: Trigger 4 - ServiceRequest delete after 30+ days
+INSERT INTO servicerequest (
+    meter_no, request_date, request_type, request_status
+)
+VALUES (
+    202, CURRENT_DATE - INTERVAL '40 days', 'Leak Fix', 'Pending'
+);
+
+UPDATE servicerequest
+SET request_status = 'Resolved'
+WHERE meter_no = 202;
+
+-- STEP 8: Trigger 5 - Delete WaterCutoff after 30 days of restoration
+UPDATE watercutoff
+SET restoration_date = CURRENT_DATE - INTERVAL '31 days'
+WHERE meter_no = 301;
+
+-- STEP 9: Trigger 6 - Delete WaterCutoff if overused
+-- First, simulate overuse in Bangalore (supply_id = 2)
+UPDATE waterboard
+SET water_allowed = 1000, water_used = 1600
+WHERE supply_id = 2;
+
+-- Now insert a new cutoff for a Bangalore household
+INSERT INTO watercutoff (meter_no, cutoff_date, reason)
+VALUES (302, CURRENT_DATE, 'Overuse test');
+
+
+-- FINAL VERIFICATION QUERIES
+
+-- Check totals per waterboard and location (Trigger 1)
+SELECT * FROM waterboard;
+SELECT * FROM location;
+
+-- Fines generated (Trigger 2)
+SELECT * FROM fine;
+
+-- Water cutoffs after 90+ days (Trigger 3)
+SELECT * FROM watercutoff;
+
+-- Household statuses (Trigger 3 effect)
+SELECT meter_no, supply_status, last_payment_date FROM household;
+
+-- Deleted service requests (Trigger 4)
+SELECT * FROM servicerequest;
+
+-- Remaining cutoffs (Trigger 5 + 6 auto deletes should remove some)
+SELECT * FROM watercutoff;
