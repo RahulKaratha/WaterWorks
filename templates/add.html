@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Administrator</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(68, 114, 215, 0.1);
+            width: 300px;
+            text-align: center;
+        }
+
+        h2 {
+            color: #0077cc;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        input[type="text"] {
+            width: calc(100% - 12px);
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #0077cc;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        button:hover {
+            background-color: #005fa3;
+        }
+
+        .actions {
+            margin-top: 20px;
+        }
+
+        .actions a {
+            color: #0077cc;
+            text-decoration: none;
+        }
+
+        .actions a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Add New Administrator</h2>
+        <form id="addAdminForm">
+            <div class="form-group">
+                <label for="newMeterNumber">Enter New Meter Number:</label>
+                <input type="text" id="newMeterNumber" name="newMeterNumber" required />
+            </div>
+            <button type="submit">Add</button>
+        </form>
+        <div class="actions">
+            <a href="/templates/dashboard.html">Back to Dashboard</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('addAdminForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const newMeterNumber = document.getElementById('newMeterNumber').value;
+            console.log('New Meter Number to Add:', newMeterNumber);
+            alert('Simulating adding new administrator with Meter Number: ' + newMeterNumber);
+        });
+    </script>
+</body>
+</html>
