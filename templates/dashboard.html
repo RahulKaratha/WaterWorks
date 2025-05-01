@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WaterWorks Households</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <style>
+      .menu-container {
+        position: relative;
+        display: inline-block;
+      }
+
+      .menu-button {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0 1rem;
+      }
+
+      .dropdown {
+        display: none;
+        position: absolute;
+        background-color: white;
+        min-width: 150px;
+        box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+        z-index: 1;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+
+      .dropdown a {
+        color: #003366;
+        padding: 0.75rem 1rem;
+        text-decoration: none;
+        display: block;
+      }
+
+      .dropdown a:hover {
+        background-color: #f1f1f1;
+      }
+
+      .menu-container:hover .dropdown {
+        display: block;
+      }
+
+      nav {
+        background-color: #003366;
+        padding: 1rem;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .nav-right {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .nav-right h1 {
+        margin: 0;
+      }
+
+      .update-button {
+        background-color: #0077cc;
+        border: none;
+        padding: 0.5rem 1rem;
+        color: #003366;
+        font-weight: bold;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+
+      input[type="number"] {
+        -moz-appearance: textfield;
+        appearance: none;
+      }
+      select, input[type="number"] {
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
+        background-color: white;
+      }
+    </style>
+  </head>
+
+  <body>
+    <nav>
+
+      <div class="menu-container">
+        <button class="menu-button">&#9776;</button>
+        <div class="dropdown">
+          <a href="/home.html">Home</a>
+          <a href="/service-request.html">Service Request</a>
+          <a href="/update-information.html">Update Information</a>
+          <a href="/payment.html">Payment</a>
+          <a href="/request-list.html">Reports</a>
+          <a href="/settings.html">Settings</a>
+        </div>
+      </div>
+
+      <div class="nav-right">
+        <button class="update-button" onclick="window.location.href='/templates/update bill.html'">
+          Update Bill
+        </button>
+        <h1>WaterWorks Dashboard</h1>
+      </div>
+    </nav>
+
+    <div class="container">
+      <label for="filterOption">View Households:</label>
+      <select id="filterOption">
+        <option value="all">All</option>
+        <option value="meter">By Meter No</option>
+        <option value="location">By Location</option>
+      </select>
+
+      <div id="inputFields">
+        <input
+          type="number"
+          id="meterInput"
+          placeholder="Enter Meter No"
+          style="display: none"
+        />
+
+        <select id="locationInput" style="display: none">
+          <option value="">Select Location</option>
+          <option value="North">North</option>
+          <option value="South">South</option>
+          <option value="East">East</option>
+          <option value="West">West</option>
+          <option value="Central">Central</option>
+        </select>
+
+        <button onclick="fetchData()">Submit</button>
+      </div>
+
+      <table
+        id="householdTable"
+        border="1"
+        style="
+          width: 100%;
+          text-align: center;
+          margin-top: 2rem;
+          background: white;
+        "
+      >
+        <thead style="background-color: #0077cc; color: white">
+          <tr>
+            <th>Meter No</th>
+            <th>Owner Name</th>
+            <th>Address</th>
+            <th>Members</th>
+            <th>Water Allowed</th>
+            <th>Water Used</th>
+            <th>Supply Status</th>
+            <th>Location</th>
+            <th>Last Payment</th>
+          </tr>
+        </thead>
+        <tbody id="householdBody"></tbody>
+      </table>
+    </div>
+
+    <script src="/static/script.js"></script>
+  </body>
+</html>
