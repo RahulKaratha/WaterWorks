@@ -4,7 +4,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const locationInput = document.getElementById("locationInput");
   const householdBody = document.getElementById("householdBody");
 
-  // Toggle visibility of input fields based on selected filter option
+
   filterOption.addEventListener("change", () => {
     meterInput.style.display = "none";
     locationInput.style.display = "none";
@@ -16,7 +16,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Fetch data based on selected filter
   window.fetchData = async function () {
     let url = "/households/";
 
