@@ -142,6 +142,268 @@ AFTER DELETE ON household
 FOR EACH ROW
 EXECUTE FUNCTION update_waterboard_usage();
 
-3. Generate fine for a household after 2 months of non payment of Bill
+
+3. Fining and Water Cutoff due to excess water usage
+
+CREATE OR REPLACE FUNCTION check_excess_water_usage() RETURNS TRIGGER AS $$
+DECLARE
+    excess INTEGER;
+    fine_amount INTEGER;
+    has_cutoff BOOLEAN;
+BEGIN
+    -- Calculate the excess water used
+    excess := NEW.water_used - NEW.water_allowed;
+
+    -- If the excess water used is more than 500L, we need to apply fines and check for cutoff
+    IF excess > 500 THEN
+        
+        -- If water used is unchanged, skip the fine logic
+        IF NEW.water_used = OLD.water_used THEN
+            RETURN NEW;
+        END IF;
+
+        -- Determine fine amount based on excess water used
+        IF excess <= 2000 THEN
+            fine_amount := 100;
+        ELSIF excess <= 4000 THEN
+            fine_amount := 300;
+        ELSIF excess <= 6000 THEN
+            fine_amount := 600;
+        ELSIF excess <= 8000 THEN
+            fine_amount := 1000;
+        ELSIF excess <= 10000 THEN
+            fine_amount := 1500;
+        ELSE
+            fine_amount := 3000;
+        END IF;
+
+        -- Insert the fine into the fine table without checking for same day
+        INSERT INTO fine (meter_no, overdue, payment_status)
+        VALUES (NEW.meter_no, fine_amount, 'Pending');
+
+        -- If over 10000L, perform water cutoff and insert record into watercutoff table
+        IF excess > 10000 THEN
+            -- Check if the household is already cut off due to excess water usage
+            SELECT TRUE INTO has_cutoff FROM watercutoff
+            WHERE meter_no = NEW.meter_no
+            AND restoration_date IS NULL
+            AND reason = 'Excess use of water'
+            LIMIT 1;
+
+            IF NOT FOUND THEN
+                -- Cut off the water supply
+                UPDATE household
+                SET supply_status = 'Inactive',
+                    water_allowed = 0
+                WHERE meter_no = NEW.meter_no;
+
+                -- Insert a new record in the watercutoff table
+                INSERT INTO watercutoff (
+                    cutoff_date,
+                    reason,
+                    restoration_date,
+                    meter_no
+                )
+                VALUES (
+                    CURRENT_DATE,
+                    'Excess use of water',
+                    NULL,
+                    NEW.meter_no
+                );
+            END IF;
+        END IF;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+DROP TRIGGER IF EXISTS trg_excess_water_usage ON household;
+
+CREATE TRIGGER trg_excess_water_usage
+AFTER UPDATE OF water_used, water_allowed ON household
+FOR EACH ROW
+WHEN (NEW.water_used > NEW.water_allowed)
+EXECUTE FUNCTION check_excess_water_usage();
+
+
+4. Set inactive houses water used to 0
+
+CREATE OR REPLACE FUNCTION set_water_used_to_zero_on_inactive() 
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Check if the supply_status is being updated to 'Inactive'
+    IF NEW.supply_status = 'Inactive' AND OLD.supply_status != 'Inactive' THEN
+        -- Set water_used to 0 when supply_status is 'Inactive'
+        UPDATE household
+        SET water_used = 0
+        WHERE meter_no = NEW.meter_no;
+    END IF;
+
+    -- Return the new row for the trigger
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+DROP TRIGGER IF EXISTS trg_set_water_used_to_zero ON household;
+
+CREATE TRIGGER trg_set_water_used_to_zero
+AFTER UPDATE OF supply_status ON household
+FOR EACH ROW
+WHEN (NEW.supply_status = 'Inactive')  -- Only trigger if supply_status is set to 'Inactive'
+EXECUTE FUNCTION set_water_used_to_zero_on_inactive();
+
+
+5. Set the Statuses for Location Table 
+
+CREATE OR REPLACE FUNCTION update_location_status_based_on_balance()
+RETURNS TRIGGER AS $$
+DECLARE
+    balance INTEGER;
+    allowed INTEGER;
+    threshold NUMERIC;
+    new_status TEXT;
+BEGIN
+    allowed := NEW.water_allowed;
+    balance := allowed - NEW.water_used;
+    threshold := allowed * 0.10;
+
+    IF balance < 0 AND abs(balance) > threshold THEN
+        new_status := 'Scarcity';
+    ELSIF balance < 0 AND abs(balance) <= threshold THEN
+        new_status := 'Shortage';
+    ELSIF balance >= 0 AND balance <= threshold THEN
+        new_status := 'Sufficient';
+    ELSE
+        new_status := 'Surplus';
+    END IF;
+
+    UPDATE location
+    SET location_status = new_status
+    WHERE supply_id = NEW.supply_id;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+DROP TRIGGER IF EXISTS trg_update_location_status ON waterboard;
+
+CREATE TRIGGER trg_update_location_status
+AFTER UPDATE OF water_used, water_allowed ON waterboard
+FOR EACH ROW
+EXECUTE FUNCTION update_location_status_based_on_balance();
+
+6. Calculate water allowed for a household based on location status and member counts
+
+CREATE OR REPLACE FUNCTION calculate_water_allowed_for_household()
+RETURNS TRIGGER AS $$
+DECLARE
+    loc_status TEXT;
+    factor NUMERIC;
+BEGIN
+    -- Fetch the location status from the related location
+    SELECT location_status INTO loc_status
+    FROM location
+    WHERE location_name = NEW.location_name;
+
+    -- Determine factor based on location_status
+    CASE loc_status
+        WHEN 'Surplus' THEN factor := 1.0;
+        WHEN 'Sufficient' THEN factor := 1.0;
+        WHEN 'Shortage' THEN factor := 0.85;
+        WHEN 'Scarcity' THEN factor := 0.7;
+        ELSE factor := 1.0; -- Default safety fallback
+    END CASE;
+
+    -- Calculate and set the water_allowed value
+    NEW.water_allowed := FLOOR((3000 + 4000 * NEW.members_count) * factor);
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_set_water_allowed_on_insert ON household;
+
+CREATE TRIGGER trg_set_water_allowed_on_insert
+BEFORE INSERT ON household
+FOR EACH ROW
+EXECUTE FUNCTION calculate_water_allowed_for_household();
+
+DROP TRIGGER IF EXISTS trg_set_water_allowed_on_update_members ON household;
+
+CREATE TRIGGER trg_set_water_allowed_on_update_members
+BEFORE UPDATE OF members_count ON household
+FOR EACH ROW
+EXECUTE FUNCTION calculate_water_allowed_for_household();
+
+7. Changing the water allowed in waterboard after supply line swapping
+
+CREATE OR REPLACE FUNCTION adjust_water_allowed_after_supply_swap()
+RETURNS TRIGGER AS $$
+DECLARE
+    old_water INTEGER;
+    new_water INTEGER;
+    water_diff INTEGER;
+    adjustment NUMERIC;
+    total_households INTEGER;
+BEGIN
+    -- Get previous and new water available
+    SELECT water_available INTO old_water
+    FROM waterboard
+    WHERE supply_id = OLD.supply_id;
+
+    SELECT water_available INTO new_water
+    FROM waterboard
+    WHERE supply_id = NEW.supply_id;
+
+    -- Difference in water availability
+    water_diff := new_water - old_water;
+
+    -- Get number of households in this location
+    SELECT total_household INTO total_households
+    FROM location
+    WHERE location_name = NEW.location_name;
+
+    -- Avoid division by zero
+    IF total_households = 0 THEN
+        RETURN NEW;
+    END IF;
+
+    IF water_diff > 0 THEN
+        adjustment := (water_diff * 0.8) / total_households;
+
+        UPDATE household
+        SET water_allowed = water_allowed + FLOOR(adjustment)
+        WHERE location_name = NEW.location_name;
+
+    ELSIF water_diff < 0 THEN
+        adjustment := (ABS(water_diff) * 1.2) / total_households;
+
+        UPDATE household
+        SET water_allowed = GREATEST(0, water_allowed - FLOOR(adjustment))
+        WHERE location_name = NEW.location_name;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+DROP TRIGGER IF EXISTS trg_adjust_water_allowed_after_supply_swap ON location;
+
+CREATE TRIGGER trg_adjust_water_allowed_after_supply_swap
+AFTER UPDATE OF supply_id ON location
+FOR EACH ROW
+WHEN (OLD.supply_id IS DISTINCT FROM NEW.supply_id)
+EXECUTE FUNCTION adjust_water_allowed_after_supply_swap();
+
+
+
+
+
+
 
 

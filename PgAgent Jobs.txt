@@ -1,6 +1,9 @@
 CREATE EXTENSION pgagent;
 
 
+
+1. Job Logic Function for Generating records in Watercutoff and Fine
+
 CREATE OR REPLACE FUNCTION apply_fines_and_cutoffs() RETURNS void AS $$
 DECLARE
     h household%ROWTYPE;
@@ -54,5 +57,32 @@ BEGIN
     END LOOP;
 END;
 $$ LANGUAGE plpgsql;
+
+
+2. Job Function logic for deleting records in watercutoff after connection is restored
+
+CREATE OR REPLACE FUNCTION cleanup_old_watercutoffs() RETURNS void AS $$
+BEGIN
+    DELETE FROM watercutoff
+    WHERE restoration_date IS NOT NULL
+      AND CURRENT_DATE - restoration_date > 30;
+END;
+$$ LANGUAGE plpgsql;
+
+
+3. Annually reset the water allowed
+
+UPDATE household
+SET water_allowed = FLOOR((3000 + 4000 * members_count) *
+    CASE location.location_status
+        WHEN 'Surplus' THEN 1.0
+        WHEN 'Sufficient' THEN 1.0
+        WHEN 'Shortage' THEN 0.85
+        WHEN 'Scarcity' THEN 0.7
+        ELSE 1.0
+    END)
+FROM location
+WHERE household.location_name = location.location_name;
+
 
 

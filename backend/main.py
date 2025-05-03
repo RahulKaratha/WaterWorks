@@ -11,7 +11,7 @@ from datetime import date,datetime
 from enum import Enum
 from sqlalchemy.sql import func
 from pydanticModels import *
-
+import random
 
 import models
 from models import Household,Waterboard,WaterCutoff,Fine,ServiceRequest,Location,Contacts
@@ -65,10 +65,24 @@ db_dependency = Annotated[Session, Depends(get_db)]
 def serve_dashboard(request: Request):
     return templates.TemplateResponse("dashboard.html", {"request": request})
 
-@app.get("/update", response_class=HTMLResponse)
+@app.get("/household/meter-reading", response_class=HTMLResponse)
 def serve_dashboard(request: Request):
     return templates.TemplateResponse("updatebill.html", {"request": request})
 
+
+@app.get("/household/update", response_class=HTMLResponse)
+def serve_dashboard(request: Request):
+    return templates.TemplateResponse("update.html", {"request": request})
+
+
+@app.get("/household/delete", response_class=HTMLResponse)
+def serve_dashboard(request: Request):
+    return templates.TemplateResponse("delete.html", {"request": request})
+
+
+@app.get("/household/add", response_class=HTMLResponse)
+def serve_dashboard(request: Request):
+    return templates.TemplateResponse("add.html", {"request": request})
 
 @app.get("/households/", response_model=List[HouseholdOut])
 def get_all_households(db: Session = Depends(get_db)):
@@ -85,7 +99,6 @@ def get_households_by_location(location_name: str, db: Session = Depends(get_db)
     return households
 
 
-
 @app.get("/household/", response_model=HouseholdOut)
 def get_household_by_meter_no(meter_no: int, db: Session = Depends(get_db)):
     household = db.query(models.Household).filter(models.Household.meter_no == meter_no).first()
@@ -95,60 +108,93 @@ def get_household_by_meter_no(meter_no: int, db: Session = Depends(get_db)):
 
     return household
 
+@app.get("/households/delete-info/{meter_no}")
+def get_household(meter_no: int, db: Session = Depends(get_db)):
+    household = db.query(Household).filter(Household.meter_no == meter_no).first()
+    if not household:
+        raise HTTPException(status_code=404, detail="Household not found")
+    
+    return {
+        "meter_no": household.meter_no,
+        "owner_name": household.owner_name,
+        "address": household.address,
+        "members_count": household.members_count,
+        "location_name": household.location_name,
+        "water_allowed": household.water_allowed,
+        "supply_status": household.supply_status,
+        "contacts": [c.contact_number for c in household.contacts],
+    }
 
 @app.post("/households/", status_code=201)
 def create_household(household: HouseholdCreate, db: Session = Depends(get_db)):
-    # Check for existing household with same meter_no
-    existing = db.query(Household).filter_by(meter_no=household.meter_no).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Household with this meter number already exists")
-    
     # Ensure that the location exists
     location = db.query(Location).filter_by(location_name=household.location_name).first()
     if not location:
         raise HTTPException(status_code=400, detail="Location does not exist")
-    
+
+    # Generate unique 7-digit meter number
+    def generate_unique_meter_no():
+        attempts = 0
+        while attempts < 10_000:
+            meter_no = str(random.randint(10**6, 10**7 - 1))  # 7-digit number
+            exists = db.query(Household).filter_by(meter_no=meter_no).first()
+            if not exists:
+                return meter_no
+            attempts += 1
+        raise HTTPException(status_code=500, detail="Unable to generate unique meter number")
+
+    meter_no = generate_unique_meter_no()
+
     try:
-        # Create the household
         new_household = Household(
-            meter_no=household.meter_no,
+            meter_no=meter_no,
             owner_name=household.owner_name,
             address=household.address,
             members_count=household.members_count,
-            water_allowed=household.water_allowed,
-            supply_status=household.supply_status,
             location_name=household.location_name,
-            
+            water_used=1
+          
         )
 
-        # Add contacts
         for contact in household.contacts:
             new_contact = Contacts(
-                meter_no=household.meter_no,
+                meter_no=meter_no,
                 contact_number=contact.contact_number
             )
             new_household.contacts.append(new_contact)
 
-        # Add the new household to the session
         db.add(new_household)
-        db.commit()  # Commit the transaction
-        db.refresh(new_household)  # Refresh the object to get the updated state from the DB
+        db.commit()
+        db.refresh(new_household)
 
-        return {"message": "Household created successfully"}
+        return {
+            "message": "Household created successfully",
+            "meter_no": new_household.meter_no,
+            "water_allowed": new_household.water_allowed
+        }
 
     except SQLAlchemyError as e:
-        db.rollback()  # Rollback in case of error
-        raise HTTPException(status_code=500, detail="Database error occurred during insert: " + str(e))
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Database error occurred: " + str(e))
 
+@app.get("/check_meter/{meter_no}")
+def check_meter_number(meter_no: int, db: Session = Depends(get_db)):
+    household = db.query(Household).filter(Household.meter_no == meter_no).first()
 
-@app.patch("/households/{meter_no}", response_model=HouseholdUpdate)
+    if not household:
+        raise HTTPException(status_code=404, detail="Meter number not found.")
+    
+    return {"message": "Meter number exists.", "meter_no": meter_no}
+
+# Update household details
+@app.patch("/households/", response_model=HouseholdUpdate)
 def update_household(meter_no: int, update_data: HouseholdUpdate, db: Session = Depends(get_db)):
     household = db.query(Household).filter(Household.meter_no == meter_no).first()
 
     if not household:
         raise HTTPException(status_code=404, detail="Household not found")
 
-    update_dict = update_data.model_dump(exclude_unset=True)
+    update_dict = update_data.dict(exclude_unset=True)
 
     # Handle contacts separately
     if "contacts" in update_dict and update_data.contacts is not None:
@@ -156,7 +202,7 @@ def update_household(meter_no: int, update_data: HouseholdUpdate, db: Session = 
         db.flush()
 
         for contact in update_data.contacts:
-            contact_number = contact.get("contact_number") if isinstance(contact, dict) else contact.contact_number
+            contact_number = contact.contact_number
 
             new_contact = Contacts(
                 meter_no=meter_no,
@@ -189,6 +235,19 @@ def delete_household(meter_no: int, db: Session = Depends(get_db)):
 
     return {"detail": "Household deleted successfully"}
 
+
+@app.patch("/household/update/water-used")
+def update_water_used(update: WaterUsedUpdate, db: Session = Depends(get_db)):
+    household = db.query(Household).filter(Household.meter_no == update.meter_no).first()
+    
+    if not household:
+        raise HTTPException(status_code=404, detail="Household not found")
+    
+    household.water_used = update.water_used
+    db.commit()
+    db.refresh(household) 
+    
+    return {"meter_no": update.meter_no, "water_used": household.water_used}
 
 @app.get("/servicerequest/{meter_no}")
 def get_requests_by_meter_no(meter_no: int, db: Session = Depends(get_db)):

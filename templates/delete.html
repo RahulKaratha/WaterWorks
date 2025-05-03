@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Delete Administrator</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        background-color: #f4f4f4;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        margin: 0;
+      }
+
+      .container {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        width: 300px;
+        text-align: center;
+      }
+
+      h2 {
+        color: #0077cc;
+        margin-bottom: 20px;
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+        text-align: left;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 5px;
+        color: #333;
+        font-weight: bold;
+      }
+
+      input[type="text"] {
+        width: calc(100% - 12px);
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+      }
+
+      button {
+        background-color: #0077cc;
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1rem;
+      }
+
+      button:hover {
+        background-color: #005fa3;
+      }
+
+      .actions {
+        margin-top: 20px;
+      }
+
+      .actions a {
+        color: #0077cc;
+        text-decoration: none;
+      }
+
+      .actions a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Delete Administrator</h2>
+      <form id="deleteAdminForm">
+        <div class="form-group">
+          <label for="meterNumber">Enter Meter Number to Delete:</label>
+          <input type="text" id="meterNumber" name="meterNumber" required />
+        </div>
+        <button type="submit">Delete</button>
+      </form>
+      <div class="actions">
+        <a href="/">Back to Dashboard</a>
+      </div>
+    </div>
+
+    <script>
+      document
+        .getElementById("deleteAdminForm")
+        .addEventListener("submit", function (event) {
+          event.preventDefault();
+
+          const meterNumber = document
+            .getElementById("meterNumber")
+            .value.trim();
+
+          if (!/^\d{7}$/.test(meterNumber)) {
+            alert("Please enter a valid 7-digit meter number.");
+            return;
+          }
+
+          // Step 1: Fetch the household details first
+          fetch(`/households/delete-info/${meterNumber}`)
+            .then((response) => {
+              if (!response.ok) {
+                if (response.status === 404) {
+                  throw new Error("No household found with this meter number.");
+                } else {
+                  throw new Error("Failed to fetch household details.");
+                }
+              }
+              return response.json();
+            })
+            .then((household) => {
+              // Prepare confirmation message
+              const details = `
+Meter No: ${household.meter_no}
+Owner Name: ${household.owner_name}
+Address: ${household.address}
+Members Count: ${household.members_count}
+Location: ${household.location_name}
+Water Allowed: ${household.water_allowed}
+Supply Status: ${household.supply_status ? "Active" : "Inactive"}
+Contacts: ${household.contacts.join(", ")}
+              `;
+
+              const confirmDelete = confirm(
+                "Are you sure you want to delete this household?\n" + details
+              );
+
+              if (!confirmDelete) return;
+
+              // Step 2: Send DELETE request
+              fetch(`/households/${meterNumber}`, {
+                method: "DELETE",
+              })
+                .then((res) => {
+                  if (res.status === 204 || res.ok) {
+                    alert("Household deleted successfully.");
+                    document.getElementById("deleteAdminForm").reset();
+                    window.location.href = "/";
+                  } else {
+                    return res.json().then((data) => {
+                      throw new Error(
+                        data.detail || "Failed to delete household."
+                      );
+                    });
+                  }
+                })
+                .catch((err) => {
+                  alert("Error during deletion: " + err.message);
+                });
+            })
+            .catch((err) => {
+              alert("Error: " + err.message);
+            });
+        });
+    </script>
+  </body>
+</html>

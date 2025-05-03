@@ -1,0 +1,277 @@
+1. Water Board Mock Data
+
+INSERT INTO waterboard (supply_id, water_available, water_used, water_allowed)
+VALUES
+    (100, 100000, 0, 0),
+    (101, 115000, 0, 0),
+    (102, 91000, 0, 0),
+    (103, 123000, 0, 0),
+    (104, 88000, 0, 0),
+    (105, 130000, 0, 0),
+    (106, 70000, 0, 0),
+    (107, 99000, 0, 0),
+    (108, 108000, 0, 0),
+    (109, 94000, 0, 0);
+
+2. Location Mock Data
+
+INSERT INTO location (location_name, supply_id, total_household, location_status)
+VALUES
+    ('North',   100, 1, 'Sufficient'),
+    ('South',   101, 1, 'Sufficient'),
+    ('East',    102, 1, 'Sufficient'),
+    ('West',    103, 1, 'Sufficient'),
+    ('Central', 104, 1, 'Sufficient');
+
+3. Household Mock Data
+
+-- Household Data (100 records)
+INSERT INTO household (meter_no, owner_name, address, members_count, water_used, supply_status, location_name, last_payment)
+VALUES
+(1000001, 'Arvind Kumar', 'North Road, Mysore', 4, 13500, 'Active', 'North', '2025-05-01'),
+(1000002, 'Neha Singh', 'South Street, Mysore', 3, 10800, 'Active', 'South', '2025-05-01'),
+(1000003, 'Pradeep Reddy', 'East Lane, Mysore', 6, 16800, 'Active', 'East', '2025-05-01'),
+(1000004, 'Vani Sharma', 'West Avenue, Mysore', 5, 15300, 'Active', 'West', '2025-05-01'),
+(1000005, 'Suresh Babu', 'Central Square, Mysore', 2, 7200, 'Inactive', 'Central', '2025-05-01'),
+(1000006, 'Meera Patel', 'North Road, Mysore', 7, 19200, 'Active', 'North', '2025-05-01'),
+(1000007, 'Anil Yadav', 'South Street, Mysore', 3, 11400, 'Active', 'South', '2025-05-01'),
+(1000008, 'Suman Gupta', 'East Lane, Mysore', 4, 12600, 'Active', 'East', '2025-05-01'),
+(1000009, 'Rajesh Kumar', 'West Avenue, Mysore', 2, 6900, 'Active', 'West', '2025-05-01'),
+(1000010, 'Lakshmi Devi', 'Central Square, Mysore', 5, 14400, 'Active', 'Central', '2025-05-01'),
+
+(1000011, 'Nikhil Joshi', 'North Road, Mysore', 3, 9600, 'Active', 'North', '2025-05-01'),
+(1000012, 'Radhika Shah', 'South Street, Mysore', 4, 12900, 'Active', 'South', '2025-05-01'),
+(1000013, 'Dinesh Verma', 'East Lane, Mysore', 6, 17400, 'Active', 'East', '2025-05-01'),
+(1000014, 'Sunita Iyer', 'West Avenue, Mysore', 5, 13800, 'Active', 'West', '2025-05-01'),
+(1000015, 'Pravin Joshi', 'Central Square, Mysore', 3, 10200, 'Inactive', 'Central', '2025-05-01'),
+(1000016, 'Geeta Rao', 'North Road, Mysore', 2, 6000, 'Active', 'North', '2025-05-01'),
+(1000017, 'Kiran Malhotra', 'South Street, Mysore', 4, 12000, 'Active', 'South', '2025-05-01'),
+(1000018, 'Vishal Sharma', 'East Lane, Mysore', 7, 21000, 'Active', 'East', '2025-05-01'),
+(1000019, 'Tanya Gupta', 'West Avenue, Mysore', 6, 18000, 'Active', 'West', '2025-05-01'),
+(1000020, 'Ashwin Kumar', 'Central Square, Mysore', 5, 13500, 'Active', 'Central', '2025-05-01'),
+
+(1000021, 'Priya Nair', 'North Road, Mysore', 2, 7500, 'Active', 'North', '2025-05-01'),
+(1000022, 'Madhuri Patel', 'South Street, Mysore', 3, 10200, 'Active', 'South', '2025-05-01'),
+(1000023, 'Abhishek Tiwari', 'East Lane, Mysore', 4, 12600, 'Active', 'East', '2025-05-01'),
+(1000024, 'Amit Kumar', 'West Avenue, Mysore', 5, 14100, 'Active', 'West', '2025-05-01'),
+(1000025, 'Jasmin Rani', 'Central Square, Mysore', 6, 18600, 'Active', 'Central', '2025-05-01'),
+(1000026, 'Ravi Shankar', 'North Road, Mysore', 3, 9300, 'Inactive', 'North', '2025-05-01'),
+(1000027, 'Ayesha Ali', 'South Street, Mysore', 4, 12300, 'Active', 'South', '2025-05-01'),
+(1000028, 'Mohit Kapoor', 'East Lane, Mysore', 2, 6000, 'Active', 'East', '2025-05-01'),
+(1000029, 'Vikram Reddy', 'West Avenue, Mysore', 5, 15000, 'Active', 'West', '2025-05-01'),
+(1000030, 'Seema Gupta', 'Central Square, Mysore', 6, 19800, 'Active', 'Central', '2025-05-01'),
+
+(1000031, 'Nitin Joshi', 'North Road, Mysore', 4, 12000, 'Active', 'North', '2025-05-01'),
+(1000032, 'Simran Shah', 'South Street, Mysore', 5, 14400, 'Active', 'South', '2025-05-01'),
+(1000033, 'Ravi Kumar', 'East Lane, Mysore', 6, 17400, 'Active', 'East', '2025-05-01'),
+(1000034, 'Anjali Nair', 'West Avenue, Mysore', 2, 6900, 'Active', 'West', '2025-05-01'),
+(1000035, 'Lalit Sharma', 'Central Square, Mysore', 3, 10200, 'Inactive', 'Central', '2025-05-01'),
+(1000036, 'Akhil Verma', 'North Road, Mysore', 5, 15000, 'Active', 'North', '2025-05-01'),
+(1000037, 'Tara Devi', 'South Street, Mysore', 3, 10500, 'Active', 'South', '2025-05-01'),
+(1000038, 'Rashmi Tiwari', 'East Lane, Mysore', 2, 6600, 'Active', 'East', '2025-05-01'),
+(1000039, 'Vikram Singh', 'West Avenue, Mysore', 6, 19200, 'Active', 'West', '2025-05-01'),
+(1000040, 'Ankit Kapoor', 'Central Square, Mysore', 4, 12000, 'Active', 'Central', '2025-05-01'),
+
+(1000041, 'Vineet Joshi', 'North Road, Mysore', 2, 8500, 'Active', 'North', '2025-05-01'),
+(1000042, 'Sonal Kumar', 'South Street, Mysore', 3, 11000, 'Active', 'South', '2025-05-01'),
+(1000043, 'Pravin Patel', 'East Lane, Mysore', 4, 12600, 'Active', 'East', '2025-05-01'),
+(1000044, 'Sunil Sharma', 'West Avenue, Mysore', 5, 13800, 'Active', 'West', '2025-05-01'),
+(1000045, 'Deepa Verma', 'Central Square, Mysore', 6, 18000, 'Active', 'Central', '2025-05-01'),
+(1000046, 'Ashok Babu', 'North Road, Mysore', 2, 6900, 'Active', 'North', '2025-05-01'),
+(1000047, 'Pratibha Rani', 'South Street, Mysore', 4, 12000, 'Inactive', 'South', '2025-05-01'),
+(1000048, 'Jatin Yadav', 'East Lane, Mysore', 3, 10500, 'Active', 'East', '2025-05-01'),
+(1000049, 'Rashmi Gupta', 'West Avenue, Mysore', 2, 6400, 'Active', 'West', '2025-05-01'),
+(1000050, 'Rajni Devi', 'Central Square, Mysore', 4, 12800, 'Active', 'Central', '2025-05-01'),
+
+(1000051, 'Ajay Reddy', 'North Road, Mysore', 3, 11000, 'Active', 'North', '2025-05-01'),
+(1000052, 'Preeti Malhotra', 'South Street, Mysore', 4, 12300, 'Active', 'South', '2025-05-01'),
+(1000053, 'Deepak Shah', 'East Lane, Mysore', 5, 14000, 'Active', 'East', '2025-05-01'),
+(1000054, 'Neelam Kumar', 'West Avenue, Mysore', 6, 15000, 'Active', 'West', '2025-05-01'),
+(1000055, 'Renu Rani', 'Central Square, Mysore', 4, 12000, 'Active', 'Central', '2025-05-01'),
+(1000056, 'Sunil Verma', 'North Road, Mysore', 2, 6500, 'Inactive', 'North', '2025-05-01'),
+(1000057, 'Vinod Reddy', 'South Street, Mysore', 5, 14200, 'Active', 'South', '2025-05-01'),
+(1000058, 'Aarti Kapoor', 'East Lane, Mysore', 3, 10200, 'Active', 'East', '2025-05-01'),
+(1000059, 'Kiran Kumar', 'West Avenue, Mysore', 4, 11400, 'Active', 'West', '2025-05-01'),
+(1000060, 'Priya Joshi', 'Central Square, Mysore', 3, 9900, 'Active', 'Central', '2025-05-01'),
+(1000061, 'Sandeep Kumar', 'North Road, Mysore', 2, 6300, 'Active', 'North', '2025-05-01'),
+(1000062, 'Kavitha Reddy', 'South Street, Mysore', 3, 10500, 'Inactive', 'South', '2025-05-01'),
+(1000063, 'Rajesh Gupta', 'East Lane, Mysore', 4, 13000, 'Active', 'East', '2025-05-01'),
+(1000064, 'Gita Sharma', 'West Avenue, Mysore', 5, 14500, 'Active', 'West', '2025-05-01'),
+(1000065, 'Anjali Singh', 'Central Square, Mysore', 6, 17500, 'Active', 'Central', '2025-05-01'),
+(1000066, 'Narendra Yadav', 'North Road, Mysore', 4, 12100, 'Active', 'North', '2025-05-01'),
+(1000067, 'Amit Kumar', 'South Street, Mysore', 3, 9500, 'Inactive', 'South', '2025-05-01'),
+(1000068, 'Sunita Patil', 'East Lane, Mysore', 5, 13500, 'Active', 'East', '2025-05-01'),
+(1000069, 'Indira Iyer', 'West Avenue, Mysore', 6, 18000, 'Active', 'West', '2025-05-01'),
+(1000070, 'Suresh Malhotra', 'Central Square, Mysore', 4, 11800, 'Inactive', 'Central', '2025-05-01'),
+
+(1000071, 'Anju Nair', 'North Road, Mysore', 3, 10700, 'Active', 'North', '2025-05-01'),
+(1000072, 'Vishnu Sharma', 'South Street, Mysore', 2, 6900, 'Active', 'South', '2025-05-01'),
+(1000073, 'Lalitha Rao', 'East Lane, Mysore', 5, 14200, 'Active', 'East', '2025-05-01'),
+(1000074, 'Ravi Iyer', 'West Avenue, Mysore', 4, 11600, 'Active', 'West', '2025-05-01'),
+(1000075, 'Sunil Gupta', 'Central Square, Mysore', 3, 9900, 'Inactive', 'Central', '2025-05-01'),
+(1000076, 'Gopal Reddy', 'North Road, Mysore', 2, 6500, 'Active', 'North', '2025-05-01'),
+(1000077, 'Ankita Patel', 'South Street, Mysore', 4, 12700, 'Active', 'South', '2025-05-01'),
+(1000078, 'Sujata Joshi', 'East Lane, Mysore', 6, 18500, 'Active', 'East', '2025-05-01'),
+(1000079, 'Manoj Kumar', 'West Avenue, Mysore', 2, 5600, 'Inactive', 'West', '2025-05-01'),
+(1000080, 'Rachna Sharma', 'Central Square, Mysore', 3, 10200, 'Active', 'Central', '2025-05-01'),
+
+(1000081, 'Jaya Kumar', 'North Road, Mysore', 5, 14500, 'Active', 'North', '2025-05-01'),
+(1000082, 'Madhuri Joshi', 'South Street, Mysore', 4, 11800, 'Active', 'South', '2025-05-01'),
+(1000083, 'Ajay Malhotra', 'East Lane, Mysore', 6, 15600, 'Active', 'East', '2025-05-01'),
+(1000084, 'Vinod Verma', 'West Avenue, Mysore', 2, 5900, 'Active', 'West', '2025-05-01'),
+(1000085, 'Tanya Reddy', 'Central Square, Mysore', 4, 13000, 'Active', 'Central', '2025-05-01'),
+(1000086, 'Anjali Patel', 'North Road, Mysore', 5, 14000, 'Inactive', 'North', '2025-05-01'),
+(1000087, 'Rahul Kumar', 'South Street, Mysore', 6, 17700, 'Active', 'South', '2025-05-01'),
+(1000088, 'Harish Gupta', 'East Lane, Mysore', 4, 11900, 'Active', 'East', '2025-05-01'),
+(1000089, 'Pooja Devi', 'West Avenue, Mysore', 3, 9800, 'Active', 'West', '2025-05-01'),
+(1000090, 'Ravi Reddy', 'Central Square, Mysore', 6, 19000, 'Active', 'Central', '2025-05-01'),
+
+(1000091, 'Vikram Yadav', 'North Road, Mysore', 4, 12600, 'Active', 'North', '2025-05-01'),
+(1000092, 'Leela Sharma', 'South Street, Mysore', 3, 10500, 'Inactive', 'South', '2025-05-01'),
+(1000093, 'Vishal Reddy', 'East Lane, Mysore', 5, 14800, 'Active', 'East', '2025-05-01'),
+(1000094, 'Rajni Gupta', 'West Avenue, Mysore', 6, 17400, 'Active', 'West', '2025-05-01'),
+(1000095, 'Krishna Kumar', 'Central Square, Mysore', 2, 5900, 'Active', 'Central', '2025-05-01'),
+(1000096, 'Rachna Rani', 'North Road, Mysore', 3, 10900, 'Active', 'North', '2025-05-01'),
+(1000097, 'Vinay Tiwari', 'South Street, Mysore', 5, 14300, 'Active', 'South', '2025-05-01'),
+(1000098, 'Shivani Shah', 'East Lane, Mysore', 4, 11800, 'Inactive', 'East', '2025-05-01'),
+(1000099, 'Ravi Tiwari', 'West Avenue, Mysore', 6, 15700, 'Active', 'West', '2025-05-01'),
+(1000100, 'Meenal Joshi', 'Central Square, Mysore', 3, 10400, 'Inactive', 'Central', '2025-05-01');
+
+
+4. Contact Mock Data 
+
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000001, '9876543201');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000001, '9123456780');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000002, '9988776655');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000003, '9012345678');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000003, '9123456799');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000004, '9345612789');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000004, '9745612890');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000005, '9654321098');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000006, '9234567890');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000006, '9988771234');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000007, '9090909190');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000008, '9876501234');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000008, '9123409876');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000009, '9345098761');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000009, '9845098712');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000010, '9876012345');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000011, '9123456701');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000012, '9988001122');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000012, '9090901212');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000013, '9876543210');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000013, '9012345671');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000014, '9234567801');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000015, '9345612788');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000015, '9745612889');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000016, '9654321099');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000017, '9123456789');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000017, '9988776654');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000018, '9876501235');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000018, '9123409877');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000019, '9345098762');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000020, '9845098713');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000020, '9876012346');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000021, '9090909090');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000021, '9876543011');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000022, '9123498765');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000023, '9812345678');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000023, '9723456789');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000024, '9900112233');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000025, '9556677880');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000025, '9887766554');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000026, '9011223344');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000026, '9445566778');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000027, '9000000001');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000028, '9123451234');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000028, '9001234567');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000029, '9611223344');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000030, '9734567812');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000031, '9945001122');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000031, '9866501234');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000032, '9201012345');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000032, '9345768799');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000033, '9678564321');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000034, '9988776625');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000034, '9090888777');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000035, '9345689321');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000036, '9706123456');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000036, '9911234567');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000037, '9876543299');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000038, '9187654321');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000039, '9845678901');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000040, '9977123456');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000040, '9611223345');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000041, '9654321090');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000042, '9123456765');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000043, '9876543219');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000044, '9900112234');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000045, '9445566779');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000045, '9887766555');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000046, '9001122334');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000046, '9445566777');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000047, '9600991222');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000047, '9234567899');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000048, '9911223345');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000049, '9112233445');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000049, '9734567801');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000050, '9201023456');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000050, '9345768791');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000051, '9845678900');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000052, '9611223346');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000053, '9734567810');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000054, '9451236789');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000054, '9623746780');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000055, '9345789123');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000055, '9501012345');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000056, '9213567890');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000057, '9345098765');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000058, '9746123456');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000059, '9087634231');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000060, '9234567891');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000060, '9988776656');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000061, '9000112234');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000062, '9356789234');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000063, '9812345679');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000064, '9634567890');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000065, '9801234567');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000066, '9087654321');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000067, '9176543201');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000068, '9345612345');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000069, '9801234590');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000070, '9900112299');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000071, '9611223347');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000072, '9001234568');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000073, '9611223348');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000074, '9734567813');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000075, '9512346789');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000075, '9632456780');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000076, '9201023478');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000077, '9345612346');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000078, '9087654323');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000079, '9123456783');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000080, '9654321094');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000081, '9745612895');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000081, '9234567803');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000082, '9623746782');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000083, '9187654324');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000084, '9512346781');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000085, '9600991223');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000086, '9234567892');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000087, '9345098766');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000088, '9734567814');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000089, '9090909091');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000090, '9611223349');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000091, '9001234569');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000092, '9123456784');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000093, '9600991224');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000094, '9345612347');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000095, '9512346782');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000096, '9734567815');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000097, '9087654325');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000098, '9611223350');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000099, '9001234570');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000100, '9123456785');
+INSERT INTO contacts (meter_no, contact_number) VALUES (1000100, '9345098767');
+
+

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Update Household</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        background-color: #f4f4f4;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        margin: 0;
+      }
+      .container {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 600px;
+      }
+      h2 {
+        color: #0077cc;
+        text-align: center;
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      label {
+        font-weight: bold;
+        display: block;
+        margin-bottom: 5px;
+      }
+      input[type="text"],
+      input[type="number"] {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      .button {
+        background-color: #0077cc;
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1rem;
+        width: 100%;
+      }
+      .button:hover {
+        background-color: #005fa3;
+      }
+      .message {
+        text-align: center;
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Update Household</h2>
+
+      <form id="lookupForm">
+        <div class="form-group">
+          <label for="meterNo">Enter Meter Number</label>
+          <input type="number" id="meterNo" name="meterNo" required />
+          <button type="submit" class="button">Check Meter</button>
+        </div>
+      </form>
+
+      <form id="updateForm" style="display: none">
+        <div class="form-group">
+          <label for="ownerName">Owner Name</label>
+          <input type="text" id="ownerName" name="ownerName" />
+        </div>
+        <div class="form-group">
+          <label for="address">Address</label>
+          <input type="text" id="address" name="address" />
+        </div>
+        <div class="form-group">
+          <label for="membersCount">Members Count</label>
+          <input type="number" id="membersCount" name="membersCount" min="1" />
+        </div>
+        <div class="form-group">
+          <label for="waterAllowed">Water Allowed</label>
+          <input type="number" id="waterAllowed" name="waterAllowed" />
+        </div>
+        <div class="form-group">
+          <label for="supplyStatus">Supply Status</label>
+          <input type="text" id="supplyStatus" name="supplyStatus" />
+        </div>
+        <div class="form-group">
+          <label for="locationName">Location Name</label>
+          <input type="text" id="locationName" name="locationName" />
+        </div>
+        <div class="form-group">
+          <label for="contact1">Contact Number 1</label>
+          <input type="text" id="contact1" name="contact1" />
+        </div>
+        <div class="form-group">
+          <label for="contact2">Contact Number 2</label>
+          <input type="text" id="contact2" name="contact2" />
+        </div>
+        <button type="submit" class="button">Update Household</button>
+        <div id="message" class="message"></div>
+      </form>
+    </div>
+
+    <script>
+      let currentMeterNo = null;
+
+      document
+        .getElementById("lookupForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+          const meterNo = document.getElementById("meterNo").value;
+          currentMeterNo = meterNo;
+
+          fetch(`/households/delete-info/${meterNo}`)
+            .then((response) => {
+              if (!response.ok) throw new Error("Household not found.");
+              return response.json();
+            })
+            .then((data) => {
+              // Populate fields with existing values
+              document.getElementById("ownerName").value =
+                data.owner_name || "";
+              document.getElementById("address").value = data.address || "";
+              document.getElementById("membersCount").value =
+                data.members_count || "";
+              document.getElementById("waterAllowed").value =
+                data.water_allowed || "";
+              document.getElementById("supplyStatus").value =
+                data.supply_status || "";
+              document.getElementById("locationName").value =
+                data.location_name || "";
+              document.getElementById("contact1").value =
+                data.contacts[0] || "";
+              document.getElementById("contact2").value =
+                data.contacts[1] || "";
+
+              document.getElementById("updateForm").style.display = "block";
+            })
+            .catch((err) => {
+              alert(err.message);
+            });
+        });
+
+      document
+        .getElementById("updateForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+
+          const updateData = {};
+
+          const getValue = (id) => document.getElementById(id).value.trim();
+
+          if (getValue("ownerName"))
+            updateData.owner_name = getValue("ownerName");
+          if (getValue("address")) updateData.address = getValue("address");
+          if (getValue("membersCount"))
+            updateData.members_count = Number(getValue("membersCount"));
+          if (getValue("waterAllowed"))
+            updateData.water_allowed = Number(getValue("waterAllowed"));
+          if (getValue("supplyStatus"))
+            updateData.supply_status = getValue("supplyStatus");
+          if (getValue("locationName"))
+            updateData.location_name = getValue("locationName");
+
+          const contacts = [];
+          if (getValue("contact1"))
+            contacts.push({ contact_number: getValue("contact1") });
+          if (getValue("contact2"))
+            contacts.push({ contact_number: getValue("contact2") });
+          if (contacts.length) updateData.contacts = contacts;
+
+          fetch(`/households/?meter_no=${currentMeterNo}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(updateData),
+          })
+            .then((response) => {
+              if (!response.ok) throw new Error("Failed to update household.");
+              return response.json();
+            })
+            .then(() => {
+              document.getElementById("message").textContent =
+                "Household updated successfully!";
+            })
+            .catch((err) => {
+              document.getElementById("message").textContent = err.message;
+            });
+        });
+    </script>
+  </body>
+</html>

@@ -41,21 +41,13 @@
         font-weight: bold;
       }
 
-      input[type="text"] {
-        width: calc(100% - 12px);
-        padding: 8px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        box-sizing: border-box;
-      }
-
+      input[type="text"],
       input[type="number"] {
         width: calc(100% - 12px);
         padding: 8px;
         border: 1px solid #ccc;
         border-radius: 4px;
         box-sizing: border-box;
-        appearance: textfield;
       }
 
       button {
@@ -109,13 +101,46 @@
     <script>
       document
         .getElementById("updateBillForm")
-        .addEventListener("submit", function (event) {
+        .addEventListener("submit", async function (event) {
           event.preventDefault();
-          const meterNumber = document.getElementById("meterNumber").value;
-          const amount = document.getElementById("amount").value;
-          console.log("Meter Number:", meterNumber);
-          console.log("Amount:", amount);
-          window.location.href = "/";
+
+          const meterNumber = document
+            .getElementById("meterNumber")
+            .value.trim();
+          const amount = parseFloat(document.getElementById("amount").value);
+
+          if (!meterNumber || isNaN(amount)) {
+            alert("Please provide valid input.");
+            return;
+          }
+
+          try {
+            const response = await fetch("/household/update/water-used", {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                meter_no: meterNumber,
+                water_used: amount,
+              }),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+              alert("Error: " + (result.detail || "Failed to update."));
+              return;
+            }
+
+            alert(
+              `Successfully updated water usage.\nMeter No: ${result.meter_no}\nWater Used: ${result.water_used}`
+            );
+            window.location.href = "/";
+          } catch (error) {
+            console.error("Error during update:", error);
+            alert("An error occurred while updating. Please try again.");
+          }
         });
     </script>
   </body>

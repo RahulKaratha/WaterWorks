@@ -26,8 +26,12 @@ class HouseholdBase(BaseModel):
     location_name: str
     last_payment: Optional[date]
 
-class HouseholdCreate(HouseholdBase):
-    pass
+class HouseholdCreate(BaseModel):
+    owner_name: str
+    address: str
+    members_count: int
+    location_name: str
+    contacts: List[ContactCreate]
 
 class HouseholdUpdate(BaseModel):
     owner_name: Optional[str] = None
@@ -43,12 +47,23 @@ class HouseholdUpdate(BaseModel):
     class Config:
         from_attributes = True
 
-class HouseholdOut(HouseholdBase):
-    
+
+class HouseholdOut(BaseModel):
+    meter_no: int
+    owner_name: str
+    address: str
+    members_count: int
+    water_allowed: int
+    water_used: int  
+    supply_status: str
+    location_name: str
+    last_payment: date
 
     class Config:
-         from_attributes = True
-
+        from_attributes = True
+class WaterUsedUpdate(BaseModel):
+    meter_no:int
+    water_used:int
 
 class LocationStatusEnum(str, Enum):
     Scarcity = "Scarcity"
