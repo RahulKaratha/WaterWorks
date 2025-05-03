@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Service Request Manager</title>
+    <style>
+      /* General Reset */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        color: #333;
+      }
+
+      /* Navigation Styles */
+      nav {
+        background-color: #003366;
+        padding: 1rem;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      nav .profile-link {
+        color: #0077cc;
+        font-weight: bold;
+        padding: 10px;
+        text-decoration: none;
+      }
+
+      nav .profile-link:hover {
+        background-color: #f0f0f0;
+        color: #005fa3;
+      }
+
+      nav .nav-right {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      nav .nav-right h1 {
+        margin: 0;
+      }
+
+      nav .update-bill-box {
+        border: 1px solid #0077cc;
+        border-radius: 5px;
+        padding: 0.25rem 0.5rem;
+      }
+
+      nav .update-bill-link {
+        color: white;
+        text-decoration: none;
+        cursor: pointer;
+        font-weight: lighter;
+      }
+
+      /* Table Styles */
+      table {
+        width: 100%;
+        margin-top: 2rem;
+        border-collapse: collapse;
+        background-color: white;
+      }
+
+      th,
+      td {
+        padding: 12px;
+        text-align: center;
+        border: 1px solid #ddd;
+      }
+
+      th {
+        background-color: #0077cc;
+        color: white;
+      }
+
+      td {
+        background-color: #f9f9f9;
+      }
+
+      tbody tr:hover {
+        background-color: #f1f1f1;
+      }
+
+      /* Status Button Styles */
+      button {
+        border: none;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+      }
+
+      button.pending {
+        background-color: orange;
+      }
+
+      button.resolved {
+        background-color: green;
+      }
+
+      button.rejected {
+        background-color: red;
+      }
+
+      button:hover {
+        opacity: 0.9;
+      }
+
+      /* Responsive Design */
+      @media (max-width: 768px) {
+        table {
+          font-size: 0.9rem;
+        }
+
+        nav {
+          flex-direction: column;
+          text-align: center;
+        }
+
+        nav .nav-right {
+          flex-direction: column;
+          align-items: center;
+          margin-top: 1rem;
+        }
+      }
+
+      @media (max-width: 480px) {
+        button {
+          width: 100%;
+          padding: 1rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Service Request Status</h1>
+    <table class="service-table" id="serviceRequests">
+      <thead>
+        <tr>
+          <th>Meter No</th>
+          <th>Request Type</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Service request data will be inserted here -->
+      </tbody>
+    </table>
+
+    <script>
+      async function fetchServiceRequests() {
+        try {
+          const response = await fetch("/servicerequest");
+          const data = await response.json();
+
+          if (!response.ok) {
+            alert("Failed to fetch service requests.");
+            return;
+          }
+
+          const tableBody = document.querySelector("#serviceRequests tbody");
+          tableBody.innerHTML = ""; // Clear any previous data
+
+          data.forEach((request) => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+              <td>${request.meter_no}</td>
+              <td>${request.request_type}</td>
+              <td class="${request.request_status.toLowerCase()}">${
+              request.request_status
+            }</td>
+              <td>
+                <button onclick="updateStatus(${request.meter_no}, '${
+              request.request_type
+            }', 'Resolved')" class="resolved">Resolve</button>
+                <button onclick="updateStatus(${request.meter_no}, '${
+              request.request_type
+            }', 'Rejected')" class="rejected">Reject</button>
+              </td>
+            `;
+            tableBody.appendChild(row);
+          });
+        } catch (error) {
+          console.error("Error fetching service requests:", error);
+        }
+      }
+
+      async function updateStatus(meter_no, request_type, status) {
+        try {
+          const response = await fetch(
+            `/servicerequest/${meter_no}/${request_type}?status=${status}`,
+            {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          const result = await response.json();
+
+          if (!response.ok) {
+            alert(`Error: ${result.detail}`);
+            return;
+          }
+
+          alert(`Status updated to: ${result.status}`);
+          fetchServiceRequests(); // Refresh the table after updating status
+        } catch (error) {
+          console.error("Error updating status:", error);
+        }
+      }
+
+      // Fetch service requests when page loads
+      fetchServiceRequests();
+    </script>
+  </body>
+</html>

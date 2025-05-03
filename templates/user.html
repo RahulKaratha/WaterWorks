@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Water Service Profile</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Arial", sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 0;
+      }
+
+      .container {
+        max-width: 800px;
+        margin: 40px auto;
+        padding: 20px;
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+
+      h2,
+      h3 {
+        text-align: center;
+        color: #0077cc;
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+
+      input[type="text"],
+      input[type="number"],
+      select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 1rem;
+      }
+
+      .button {
+        background-color: #0077cc;
+        color: white;
+        padding: 10px;
+        width: 100%;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1rem;
+        margin-top: 10px;
+      }
+
+      .button:hover {
+        background-color: #005fa3;
+      }
+
+      .card {
+        background-color: #f9f9f9;
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 5px;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+      }
+
+      .empty,
+      .message {
+        text-align: center;
+        color: #666;
+        margin-top: 10px;
+      }
+
+      .message.success {
+        color: green;
+      }
+
+      .message.error {
+        color: red;
+      }
+
+      .pay-fine-button {
+        background-color: orange;
+        color: white;
+        padding: 10px;
+        width: 100%;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1rem;
+        margin-top: 10px;
+      }
+
+      .pay-fine-button.paid {
+        background-color: green;
+      }
+
+      @media (max-width: 600px) {
+        .container {
+          margin: 10px;
+          padding: 15px;
+        }
+
+        h2,
+        h3 {
+          font-size: 1.3rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Water Service Profile</h2>
+
+      <div class="form-group">
+        <label for="meterNo">Enter Meter Number:</label>
+        <input
+          type="number"
+          id="meterNo"
+          placeholder="Enter your meter number"
+        />
+      </div>
+      <button class="button" onclick="loadProfile()">Load Profile</button>
+
+      <div id="profileSection" style="display: none">
+        <h3>Household Information</h3>
+        <div id="householdInfo">Loading...</div>
+
+        <h3>Service Requests</h3>
+        <div id="serviceRequests">Loading...</div>
+
+        <h3>Active Fines</h3>
+        <div id="fineInfo">Loading...</div>
+        <div id="payFineButtonContainer" style="display: none">
+          <button
+            id="payFineButton"
+            class="pay-fine-button"
+            onclick="payFine()"
+          >
+            Pay Fine
+          </button>
+        </div>
+
+        <h3>Water Cutoffs</h3>
+        <div id="cutoffInfo">Loading...</div>
+
+        <h3>Raise a New Service Request</h3>
+
+        <div class="form-group">
+          <label for="requestDropdown">Select Request Type:</label>
+          <select id="requestDropdown" onchange="toggleCustomRequest()">
+            <option value="">-- Select a request type --</option>
+            <option value="Additional water allowance">
+              Additional water allowance
+            </option>
+            <option value="Leak repair">Leak repair</option>
+            <option value="Meter malfunction">Meter malfunction</option>
+            <option value="General maintenance">General maintenance</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="customRequestGroup" style="display: none">
+          <label for="customRequest">Enter Custom Request:</label>
+          <input
+            type="text"
+            id="customRequest"
+            placeholder="Enter custom request type"
+          />
+        </div>
+
+        <button class="button" onclick="raiseRequest()">Submit Request</button>
+        <div id="requestResponse" class="message"></div>
+      </div>
+    </div>
+
+    <script>
+      function toggleCustomRequest() {
+        const dropdown = document.getElementById("requestDropdown");
+        const customGroup = document.getElementById("customRequestGroup");
+        customGroup.style.display =
+          dropdown.value === "other" ? "block" : "none";
+      }
+
+      async function loadProfile() {
+        const meterNo = document.getElementById("meterNo").value.trim();
+        if (!meterNo) return alert("Please enter a meter number");
+
+        document.getElementById("profileSection").style.display = "block";
+        document.getElementById("householdInfo").innerHTML = "Loading...";
+        document.getElementById("serviceRequests").innerHTML = "Loading...";
+        document.getElementById("fineInfo").innerHTML = "Loading...";
+        document.getElementById("cutoffInfo").innerHTML = "Loading...";
+        document.getElementById("requestResponse").innerHTML = "";
+
+        try {
+          const res = await fetch(`/household/?meter_no=${meterNo}`);
+          if (!res.ok) throw new Error("Household not found");
+          const data = await res.json();
+          document.getElementById("householdInfo").innerHTML = `
+          <div class="card">
+            <strong>Owner:</strong> ${data.owner_name}<br/>
+            <strong>Address:</strong> ${data.address}<br/>
+            <strong>Members:</strong> ${data.members_count}<br/>
+            <strong>Water Allowed:</strong> ${data.water_allowed} L<br/>
+            <strong>Water Used:</strong> ${data.water_used} L<br/>
+            <strong>Status:</strong> ${data.supply_status}<br/>
+            <strong>Last Payment:</strong> ${data.last_payment}
+          </div>
+        `;
+        } catch (err) {
+          document.getElementById(
+            "householdInfo"
+          ).innerHTML = `<div class="empty">${err.message}</div>`;
+        }
+
+        try {
+          const res = await fetch(`/servicerequest/${meterNo}`);
+          const requests = await res.json();
+          if (!Array.isArray(requests) || requests.length === 0) {
+            throw new Error("No service requests found.");
+          }
+
+          document.getElementById("serviceRequests").innerHTML = requests
+            .map(
+              (req) => `
+          <div class="card">
+            <strong>Type:</strong> ${req.request_type}<br/>
+            <strong>Status:</strong> ${req.request_status}<br/>
+            <strong>Date:</strong> ${new Date(
+              req.request_date
+            ).toLocaleString()}
+          </div>
+        `
+            )
+            .join("");
+        } catch (err) {
+          document.getElementById(
+            "serviceRequests"
+          ).innerHTML = `<div class="empty">${err.message}</div>`;
+        }
+
+        try {
+          const res = await fetch(`/fines/${meterNo}`);
+          const fine = await res.json();
+          if (fine.payment_status === "Pending") {
+            document.getElementById("payFineButtonContainer").style.display =
+              "block";
+          }
+          document.getElementById("fineInfo").innerHTML = `
+          <div class="card">
+            <strong>Overdue:</strong> ₹${fine.overdue}<br/>
+            <strong>Status:</strong> ${fine.payment_status}
+          </div>
+        `;
+        } catch (err) {
+          document.getElementById(
+            "fineInfo"
+          ).innerHTML = `<div class="empty">${err.message}</div>`;
+        }
+
+        try {
+          const res = await fetch(`/watercutoff/${meterNo}`);
+          const cutoffs = await res.json();
+          if (!cutoffs.length) throw new Error("No water cutoffs found.");
+          document.getElementById("cutoffInfo").innerHTML = cutoffs
+            .map(
+              (c) => `
+          <div class="card">
+            <strong>Cutoff Date:</strong> ${c.cutoff_date}<br/>
+            <strong>Reason:</strong> ${c.reason}<br/>
+            <strong>Restored:</strong> ${c.restoration_date || "Pending"}
+          </div>
+        `
+            )
+            .join("");
+        } catch (err) {
+          document.getElementById(
+            "cutoffInfo"
+          ).innerHTML = `<div class="empty">${err.message}</div>`;
+        }
+      }
+
+      async function payFine() {
+        const meterNo = document.getElementById("meterNo").value.trim();
+        const button = document.getElementById("payFineButton");
+        if (!meterNo) return alert("Please enter your meter number first");
+
+        try {
+          const res = await fetch(`/fines/${meterNo}/mark-paid`, {
+            method: "PATCH",
+          });
+          const result = await res.json();
+          if (res.ok) {
+            button.classList.add("paid");
+            button.textContent = "Fine Paid";
+          } else {
+            alert("Error: " + result.detail);
+          }
+        } catch (err) {
+          alert("Error: " + err.message);
+        }
+      }
+
+      async function raiseRequest() {
+        const meterNo = document.getElementById("meterNo").value.trim();
+        let requestType = document.getElementById("requestDropdown").value;
+
+        if (requestType === "other") {
+          requestType = document.getElementById("customRequest").value.trim();
+        }
+
+        if (!meterNo || !requestType)
+          return alert("Please provide meter number and request type.");
+
+        const msgEl = document.getElementById("requestResponse");
+
+        try {
+          const res = await fetch("/requests/raise", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              meter_no: parseInt(meterNo),
+              request_type: requestType,
+            }),
+          });
+
+          if (!res.ok) throw new Error("Failed to submit request");
+
+          msgEl.innerHTML = "Service request submitted successfully.";
+          msgEl.className = "message success";
+          loadProfile();
+        } catch (err) {
+          msgEl.innerHTML = err.message;
+          msgEl.className = "message error";
+        }
+      }
+    </script>
+  </body>
+</html>

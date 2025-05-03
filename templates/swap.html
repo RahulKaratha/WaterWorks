@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Supply Line Manager</title>
+    <style>
+      .profile-link {
+        color: #0077cc;
+        font-weight: bold;
+        padding: 10px;
+        text-decoration: none;
+      }
+
+      .profile-link:hover {
+        background-color: #f0f0f0;
+        color: #005fa3;
+      }
+
+      .menu-container {
+        position: relative;
+        display: inline-block;
+      }
+
+      .menu-button {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0 1rem;
+      }
+
+      .dropdown {
+        display: none;
+        position: absolute;
+        background-color: white;
+        min-width: 150px;
+        box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+        z-index: 1;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+
+      .dropdown a {
+        color: #003366;
+        padding: 0.75rem 1rem;
+        text-decoration: none;
+        display: block;
+      }
+
+      .dropdown a:hover {
+        background-color: #f1f1f1;
+      }
+
+      .menu-container:hover .dropdown {
+        display: block;
+      }
+
+      nav {
+        background-color: #003366;
+        padding: 1rem;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .nav-right {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .nav-right h1 {
+        margin: 0;
+      }
+
+      .admin-box {
+        border: 1px solid #0077cc;
+        border-radius: 5px;
+        padding: 0.25rem 0.5rem;
+        position: relative;
+      }
+
+      .admin-label {
+        color: white;
+        font-weight: lighter;
+        cursor: pointer;
+        display: block;
+      }
+
+      .admin-dropdown {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background-color: white;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+        z-index: 2;
+        min-width: 80px;
+      }
+
+      .admin-dropdown a {
+        color: #003366;
+        padding: 0.5rem 0.75rem;
+        text-decoration: none;
+        display: block;
+        font-size: 0.9rem;
+      }
+
+      .admin-dropdown a:hover {
+        background-color: #f1f1f1;
+      }
+
+      .admin-box:hover .admin-dropdown {
+        display: block;
+      }
+
+      .update-bill-box {
+        border: 1px solid #0077cc;
+        border-radius: 5px;
+        padding: 0.25rem 0.5rem;
+      }
+
+      .update-bill-link {
+        color: white;
+        text-decoration: none;
+        cursor: pointer;
+        font-weight: lighter;
+      }
+
+      input[type="number"] {
+        -moz-appearance: textfield;
+        appearance: none;
+      }
+
+      select,
+      input[type="number"] {
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
+        background-color: white;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+
+      th,
+      td {
+        padding: 10px;
+        border: 1px solid #ddd;
+        text-align: left;
+      }
+
+      th {
+        background-color: #f4f4f4;
+      }
+
+      button {
+        background-color: #0077cc;
+        color: white;
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background-color: #005fa3;
+      }
+
+      #responseMessage {
+        margin-top: 20px;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+      }
+
+      .error {
+        color: red;
+        background-color: #f8d7da;
+      }
+
+      .success {
+        color: green;
+        background-color: #d4edda;
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <h1>Water Supply Admin Panel</h1>
+      <div class="nav-right">
+        <div class="admin-box">
+          <span class="admin-label">Admin ▾</span>
+          <div class="admin-dropdown">
+            <a href="/">Dashboard</a>
+            <a href="#">Logout</a>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <h2>Location Status</h2>
+    <table id="statusTable">
+      <thead>
+        <tr>
+          <th>Location Name</th>
+          <th>Status</th>
+          <th>Total Households</th>
+          <th>Supply ID</th>
+          <th>Water Available</th>
+          <th>Water Allowed</th>
+          <th>Water Used</th>
+          <th>Balance</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <h2>Vacant Supply Lines</h2>
+    <table id="vacantSupplyTable">
+      <thead>
+        <tr>
+          <th>Supply ID</th>
+          <th>Water Available</th>
+          <th>Water Allowed</th>
+          <th>Water Used</th>
+          <th>Balance</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <h2>Recommended Swaps</h2>
+    <table id="recommendedSwapsTable">
+      <thead>
+        <tr>
+          <th>Surplus Supply ID</th>
+          <th>Surplus Difference</th>
+          <th>Scarcity Supply ID</th>
+          <th>Scarcity Difference</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <h2>Swap Supply Lines</h2>
+    <form id="swapForm">
+      <label
+        >Location Name 1 (optional): <input type="text" name="location_name_1"
+      /></label>
+      <label
+        >Supply ID 1 (optional): <input type="number" name="supply_id_1"
+      /></label>
+      <label
+        >Location Name 2 (optional): <input type="text" name="location_name_2"
+      /></label>
+      <label
+        >Supply ID 2 (optional): <input type="number" name="supply_id_2"
+      /></label>
+      <button type="submit">Swap</button>
+    </form>
+
+    <div id="responseMessage"></div>
+
+    <script>
+      const STATUS_ORDER = {
+        Scarcity: 0,
+        Shortage: 1,
+        Sufficient: 2,
+        Surplus: 3,
+      };
+
+      async function loadStatus() {
+        const res = await fetch("/location/status");
+        const data = await res.json();
+        const tbody = document.querySelector("#statusTable tbody");
+        tbody.innerHTML = "";
+
+        if (!res.ok) {
+          document.getElementById(
+            "responseMessage"
+          ).innerText = `Error: ${data.detail}`;
+          return;
+        }
+
+        data.sort(
+          (a, b) =>
+            STATUS_ORDER[a.location_status] - STATUS_ORDER[b.location_status]
+        );
+
+        data.forEach((loc) => {
+          const row = `<tr>
+            <td>${loc.location_name}</td>
+            <td>${loc.location_status}</td>
+            <td>${loc.total_household}</td>
+            <td>${loc.supply_id}</td>
+            <td>${loc.waterboard.water_available}</td>
+            <td>${loc.waterboard.water_allowed}</td>
+            <td>${loc.waterboard.water_used}</td>
+            <td>${loc.waterboard.balance}</td>
+          </tr>`;
+          tbody.insertAdjacentHTML("beforeend", row);
+        });
+      }
+
+      async function loadVacantSupplyLines() {
+        const res = await fetch("/supply/unassigned");
+        const data = await res.json();
+        const tbody = document.querySelector("#vacantSupplyTable tbody");
+        tbody.innerHTML = "";
+
+        if (!res.ok) {
+          document.getElementById(
+            "responseMessage"
+          ).innerText = `Error: ${data.detail}`;
+          return;
+        }
+
+        data.forEach((supply) => {
+          const row = `<tr>
+            <td>${supply.supply_id}</td>
+            <td>${supply.water_available}</td>
+            <td>${supply.water_allowed}</td>
+            <td>${supply.water_used}</td>
+            <td>${supply.balance}</td>
+          </tr>`;
+          tbody.insertAdjacentHTML("beforeend", row);
+        });
+      }
+
+      async function loadRecommendations() {
+        const res = await fetch("/recommend-swap");
+        const data = await res.json();
+        const tbody = document.querySelector("#recommendedSwapsTable tbody");
+        tbody.innerHTML = "";
+
+        if (!res.ok) {
+          document.getElementById(
+            "responseMessage"
+          ).innerText = `Error: ${data.detail}`;
+          return;
+        }
+
+        data.recommendations.forEach((rec) => {
+          const row = `<tr>
+            <td>${rec.surplus_supply_id}</td>
+            <td>${rec.surplus_diff}</td>
+            <td>${rec.scarcity_supply_id}</td>
+            <td>${rec.scarcity_diff}</td>
+          </tr>`;
+          tbody.insertAdjacentHTML("beforeend", row);
+        });
+      }
+
+      document
+        .getElementById("swapForm")
+        .addEventListener("submit", async function (e) {
+          e.preventDefault();
+
+          const formData = new FormData(this);
+          const body = {};
+
+          for (const [key, value] of formData.entries()) {
+            if (value) body[key] = isNaN(value) ? value : Number(value);
+          }
+
+          const res = await fetch("/location/swap-supply/", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(body),
+          });
+
+          const msg = document.getElementById("responseMessage");
+
+          if (res.ok) {
+            const json = await res.json();
+            msg.innerText = json.message;
+            msg.className = "success";
+            loadStatus();
+            loadVacantSupplyLines();
+            loadRecommendations();
+          } else {
+            const err = await res.json();
+            msg.innerText = `Error: ${err.detail}`;
+            msg.className = "error";
+          }
+        });
+
+      loadStatus();
+      loadVacantSupplyLines();
+      loadRecommendations();
+    </script>
+  </body>
+</html>

@@ -12,7 +12,7 @@ from enum import Enum
 from sqlalchemy.sql import func
 from pydanticModels import *
 import random
-
+from sqlalchemy import asc
 import models
 from models import Household,Waterboard,WaterCutoff,Fine,ServiceRequest,Location,Contacts
 from database import engine, SessionLocal
@@ -68,6 +68,20 @@ def serve_dashboard(request: Request):
 @app.get("/household/meter-reading", response_class=HTMLResponse)
 def serve_dashboard(request: Request):
     return templates.TemplateResponse("updatebill.html", {"request": request})
+
+
+@app.get("/requests", response_class=HTMLResponse)
+def serve_dashboard(request: Request):
+    return templates.TemplateResponse("requests.html", {"request": request})
+
+
+@app.get("/user", response_class=HTMLResponse)
+def serve_dashboard(request: Request):
+    return templates.TemplateResponse("user.html", {"request": request})
+
+@app.get("/swap", response_class=HTMLResponse)
+def serve_page(request: Request):
+    return templates.TemplateResponse("swap.html", {"request": request})
 
 
 @app.get("/household/update", response_class=HTMLResponse)
@@ -249,15 +263,20 @@ def update_water_used(update: WaterUsedUpdate, db: Session = Depends(get_db)):
     
     return {"meter_no": update.meter_no, "water_used": household.water_used}
 
-@app.get("/servicerequest/{meter_no}")
-def get_requests_by_meter_no(meter_no: int, db: Session = Depends(get_db)):
-    requests = db.query(ServiceRequest).filter(ServiceRequest.meter_no == meter_no).all()
-    
-    if not requests:
-        raise HTTPException(status_code=404, detail="No service requests found for this meter number")
-    
-    return requests
 
+
+@app.get("/servicerequest", response_model=List[ServiceRequestOut])
+def get_all_service_requests(db: Session = Depends(get_db)):
+    requests = (
+        db.query(ServiceRequest)
+        .order_by(asc(ServiceRequest.request_date))  # Oldest requests first
+        .all()
+    )
+
+    if not requests:
+        raise HTTPException(status_code=404, detail="No service requests found")
+
+    return requests
 
 
 
@@ -371,3 +390,110 @@ def update_restoration_date(cutoff_id: int, restoration_date: date, db: Session 
     return {"message": "Restoration date updated", "id": record.id, "restoration_date": record.restoration_date}
 
 
+@app.post("/location/swap-supply/")
+def swap_supply(request: SupplySwapRequest, db: Session = Depends(get_db)):
+    def get_location(name: str):
+        return db.query(Location).filter(Location.location_name == name).first()
+
+    def get_location_by_supply_id(supply_id: int):
+        return db.query(Location).filter(Location.supply_id == supply_id).first()
+
+    loc1 = loc2 = None
+
+    if request.location_name_1:
+        loc1 = get_location(request.location_name_1)
+        if not loc1:
+            raise HTTPException(status_code=404, detail=f"Location '{request.location_name_1}' not found")
+        supply_id_1 = loc1.supply_id
+    elif request.supply_id_1 is not None:
+        loc1 = get_location_by_supply_id(request.supply_id_1)
+        supply_id_1 = request.supply_id_1
+    else:
+        raise HTTPException(status_code=400, detail="Provide either location_name_1 or supply_id_1")
+
+    if request.location_name_2:
+        loc2 = get_location(request.location_name_2)
+        if not loc2:
+            raise HTTPException(status_code=404, detail=f"Location '{request.location_name_2}' not found")
+        supply_id_2 = loc2.supply_id
+    elif request.supply_id_2 is not None:
+        loc2 = get_location_by_supply_id(request.supply_id_2)
+        supply_id_2 = request.supply_id_2
+    else:
+        raise HTTPException(status_code=400, detail="Provide either location_name_2 or supply_id_2")
+
+    if supply_id_1 is None or supply_id_2 is None:
+        raise HTTPException(status_code=400, detail="Supply IDs could not be resolved.")
+
+    if loc1:
+        loc1.supply_id = supply_id_2
+    if loc2:
+        loc2.supply_id = supply_id_1
+
+    db.commit()
+
+    result = []
+    if loc1:
+        db.refresh(loc1)
+        result.append({"location": loc1.location_name, "new_supply_id": loc1.supply_id})
+    else:
+        result.append({"location": None, "now_has_supply_id": supply_id_2})
+    if loc2:
+        db.refresh(loc2)
+        result.append({"location": loc2.location_name, "new_supply_id": loc2.supply_id})
+    else:
+        result.append({"location": None, "now_has_supply_id": supply_id_1})
+
+    return {"message": "Supply lines swapped successfully", "result": result}
+
+@app.get("/supply/unassigned", response_model=List[WaterboardSimple])
+def get_unassigned_supply_lines(db: Session = Depends(get_db)):
+    unassigned = (
+        db.query(models.Waterboard)
+        .outerjoin(models.Location, models.Location.supply_id == models.Waterboard.supply_id)
+        .filter(models.Location.supply_id == None)
+        .all()
+    )
+    return unassigned
+
+@app.get("/recommend-swap")
+async def recommend_swap(db: Session = Depends(get_db)):
+    try:
+        # Get all waterboard lines (with or without locations)
+        water_lines = db.query(models.Waterboard).all()
+
+        surplus_lines = []
+        scarcity_lines = []
+
+        for line in water_lines:
+            # Calculate the difference between available and allowed water
+            diff = line.water_available - line.water_allowed
+
+            # Check if the line has a location (location_name is not NULL)
+            has_location = line.location is not None
+
+            if diff > 0:  # surplus
+                surplus_lines.append((line, diff, has_location))
+            elif diff < 0:  # scarcity
+                scarcity_lines.append((line, diff, has_location))
+
+        # Sort by the largest differences
+        surplus_lines.sort(key=lambda x: x[1], reverse=True)  # Sort descending by difference
+        scarcity_lines.sort(key=lambda x: abs(x[1]), reverse=True)  # Sort descending by absolute difference
+
+        # Generate swap recommendations
+        recommendations = []
+        for surplus, scarcity in zip(surplus_lines, scarcity_lines):
+            # If at least one line has a location, recommend swap
+            if surplus[2] or scarcity[2]:  # at least one line has a location
+                recommendations.append({
+                    "surplus_supply_id": surplus[0].supply_id,
+                    "surplus_diff": surplus[1],
+                    "scarcity_supply_id": scarcity[0].supply_id,
+                    "scarcity_diff": scarcity[1]
+                })
+
+        return {"message": "Swap recommendations generated", "recommendations": recommendations}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

@@ -10,7 +10,7 @@ class Household(Base):
     owner_name=Column(String,nullable=False,index=True)
     address=Column(Text,index=True)
     members_count=Column(Integer,CheckConstraint('members_count>0'),nullable=False,index=True)
-    water_allowed=Column(Integer,CheckConstraint('water_allowed>0'),index=True)
+    water_allowed=Column(Integer,CheckConstraint('water_allowed>=0'),index=True)
     water_used=Column(Integer,CheckConstraint('water_used>=0'),index=True,default=0)
     supply_status=Column(Enum('Active','Inactive',name='status'),index=True,default="Active")
     location_name=Column(String,ForeignKey('location.location_name'),nullable=False,index=True)

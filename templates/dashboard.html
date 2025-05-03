@@ -6,6 +6,18 @@
     <title>WaterWorks Households</title>
     <link rel="stylesheet" href="/static/style.css" />
     <style>
+      .profile-link {
+        color: #0077cc;
+        font-weight: bold;
+        padding: 10px;
+        text-decoration: none;
+      }
+
+      .profile-link:hover {
+        background-color: #f0f0f0;
+        color: #005fa3;
+      }
+
       .menu-container {
         position: relative;
         display: inline-block;
@@ -139,24 +151,18 @@
   <body>
     <nav>
       <div class="menu-container">
-        <button class="menu-button">&#9776;</button>
-        <div class="dropdown">
-          <a href="/home.html">Home</a>
-          <a href="/service-request.html">Service Request</a>
-          <a href="/update-information.html">Update Information</a>
-          <a href="/payment.html">Payment</a>
-          <a href="/request-list.html">Reports</a>
-          <a href="/settings.html">Settings</a>
-        </div>
+        <a class="profile-link" href="/user"> Profile </a>
       </div>
 
       <div class="nav-right">
         <div class="admin-box">
           <span class="admin-label">Administrator</span>
           <div class="admin-dropdown">
-            <a href="household/update">Update</a>
-            <a href="/household/delete">Delete</a>
-            <a href="/household/add">Add</a>
+            <a href="household/update">Update Households</a>
+            <a href="/household/delete">Delete Households</a>
+            <a href="/household/add">Add Households</a>
+            <a href="/swap">Swap Supply</a>
+            <a href="/requests">View Requests</a>
           </div>
         </div>
         <div class="update-bill-box">

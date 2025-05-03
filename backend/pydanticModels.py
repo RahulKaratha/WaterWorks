@@ -125,9 +125,12 @@ class ServiceRequestCreate(BaseModel):
     meter_no:int
     
 
-class ServiceRequestOut(ServiceRequestBase):
-    id: int
+class ServiceRequestOut(BaseModel):
+    meter_no:int
+    request_type: str
     request_date: datetime
+    request_status: str
+
     class Config:
         from_attributes = True
 
@@ -158,3 +161,18 @@ class FineOut(FineBase):
     class Config:
         from_attributes = True
 
+class SupplySwapRequest(BaseModel):
+    location_name_1: Optional[str] = None
+    location_name_2: Optional[str] = None
+    supply_id_1: Optional[int] = None
+    supply_id_2: Optional[int] = None
+
+class WaterboardSimple(BaseModel):
+    supply_id: int
+    water_available: int
+    water_allowed: int
+    water_used: int
+    balance: int
+
+    class Config:
+        orm_mode = True
