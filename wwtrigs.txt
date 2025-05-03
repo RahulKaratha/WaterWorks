@@ -1,0 +1,225 @@
+WATERWORKS TRIGGERS: 
+
+1. Update total water allowed.
+Increase the number of households for that waterboard when a new household is added. 
+
+CREATE OR REPLACE FUNCTION update_waterboard_on_household_insert()
+RETURNS TRIGGER AS $$
+BEGIN
+   
+    UPDATE waterboard
+    SET water_allowed = water_allowed + NEW.water_allowed
+    WHERE supply_id = (
+        SELECT supply_id
+        FROM location
+        WHERE location_name = NEW.location_name
+    );
+
+ 
+    UPDATE location
+    SET total_household = (
+        SELECT COUNT(*)
+        FROM household
+        WHERE location_name = NEW.location_name
+    )
+    WHERE location_name = NEW.location_name;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+TRIGGER QUERY:
+DROP TRIGGER IF EXISTS after_household_insert ON household;
+
+CREATE TRIGGER after_household_insert
+AFTER INSERT ON household
+FOR EACH ROW
+EXECUTE FUNCTION update_waterboard_on_household_insert();
+
+
+
+2. Trigger to generate fines  after 1.5 months since last payment of bill (Fine increases every 5 days)
+
+
+CREATE OR REPLACE FUNCTION generate_fine()
+RETURNS TRIGGER AS $$
+DECLARE
+    overdue_days INTEGER;
+    fine_amount INTEGER;
+BEGIN
+   
+    overdue_days := (CURRENT_DATE - NEW.last_payment_date);
+
+    IF overdue_days > 45 THEN
+        
+        fine_amount := (overdue_days - 45) / 5 * 100;
+
+        INSERT INTO fine (overdue, payment_status, meter_no)
+        VALUES (overdue_days, 'Pending', NEW.meter_no);
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+TRIGGER QUERY:
+DROP TRIGGER IF EXISTS after_household_update_generate_fine ON household;
+
+CREATE TRIGGER after_household_update_generate_fine
+AFTER UPDATE ON household
+FOR EACH ROW
+EXECUTE FUNCTION generate_fine();
+
+
+
+
+
+
+
+
+
+3. Trigger to cutoff water supply when bill is not paid for more than 3 months
+
+
+CREATE OR REPLACE FUNCTION cutoff_water_supply()
+RETURNS TRIGGER AS $$
+DECLARE
+    overdue_days INTEGER;
+BEGIN
+   
+    overdue_days := (CURRENT_DATE - NEW.last_payment_date);
+
+    IF overdue_days > 90 THEN
+        
+        INSERT INTO watercutoff (cutoff_date, reason, meter_no)
+        VALUES (CURRENT_DATE, 'Non-payment for over 3 months', NEW.meter_no);
+
+        
+        UPDATE household
+        SET supply_status = 'Inactive'
+        WHERE meter_no = NEW.meter_no;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+TRIGGER QUERY:
+DROP TRIGGER IF EXISTS after_household_update_cutoff_water ON household;
+
+CREATE TRIGGER after_household_update_cutoff_water
+AFTER UPDATE ON household
+FOR EACH ROW
+EXECUTE FUNCTION cutoff_water_supply();
+
+
+
+
+
+  4. Trigger to delete service request row when it is approved after certain period of time
+
+
+CREATE OR REPLACE FUNCTION delete_old_resolved_requests()
+RETURNS TRIGGER AS $$
+BEGIN
+    
+    IF NEW.request_status = 'Resolved' AND (CURRENT_DATE - NEW.request_date::date) > 30 THEN
+        DELETE FROM servicerequest
+        WHERE id = NEW.id;
+    END IF;
+
+    RETURN NULL; 
+END;
+$$ LANGUAGE plpgsql;
+
+TRIGGER QUERY:
+CREATE TRIGGER trigger_delete_old_resolved_requests
+AFTER UPDATE ON servicerequest
+FOR EACH ROW
+EXECUTE FUNCTION delete_old_resolved_requests();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+5. Record is deleted 30 days after Restoration date
+
+
+CREATE OR REPLACE FUNCTION delete_cutoff_after_30_days()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Check if 30+ days have passed since restoration date
+    IF NEW.restoration_date IS NOT NULL AND (CURRENT_DATE - NEW.restoration_date) > 30 THEN
+        DELETE FROM watercutoff
+        WHERE id = NEW.id;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+TRIGGER QUERY:
+
+CREATE TRIGGER trigger_delete_cutoff_30days
+AFTER INSERT OR UPDATE OF restoration_date ON watercutoff
+FOR EACH ROW
+EXECUTE FUNCTION delete_cutoff_after_30_days();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+6. Water cutoff when water used is greater than water allowed
+
+CREATE OR REPLACE FUNCTION delete_cutoff_when_excess_usage()
+RETURNS TRIGGER AS $$
+DECLARE
+    allowed INTEGER;
+    used INTEGER;
+BEGIN
+    -- Fetch allowed and used water amounts for the location
+    SELECT water_allowed, water_used
+    INTO allowed, used
+    FROM waterboard
+    INNER JOIN location ON location.supply_id = waterboard.supply_id
+    INNER JOIN household ON household.location_name = location.location_name
+    WHERE household.meter_no = NEW.meter_no;
+    
+    -- If water used is more than 150% of water allowed, delete
+    IF used > (1.5 * allowed) THEN
+        DELETE FROM watercutoff
+        WHERE id = NEW.id;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+TRIGGER QUERY:
+
+CREATE TRIGGER trigger_delete_cutoff_excess_usage
+AFTER INSERT OR UPDATE ON watercutoff
+FOR EACH ROW
+EXECUTE FUNCTION delete_cutoff_when_excess_usage();
