@@ -154,26 +154,73 @@
           event.preventDefault();
 
           // Collect form data
-          const ownerName = document.getElementById("ownerName").value;
-          const memberCount = document.getElementById("memberCount").value;
-          const address = document.getElementById("address").value;
-          const locationName = document.getElementById("locationName").value;
-          const contactNumber1 =
-            document.getElementById("contactNumber1").value;
-          const contactNumber2 =
-            document.getElementById("contactNumber2").value;
+          const ownerName = document.getElementById("ownerName").value.trim();
+          const memberCount = document
+            .getElementById("memberCount")
+            .value.trim();
+          const address = document.getElementById("address").value.trim();
+          const locationName = document
+            .getElementById("locationName")
+            .value.trim();
+          const contactNumber1 = document
+            .getElementById("contactNumber1")
+            .value.trim();
+          const contactNumber2 = document
+            .getElementById("contactNumber2")
+            .value.trim();
 
-          // Validate inputs
-          const phoneRegex = /^\d{10}$/;
+          // Validation regex patterns
+          const phoneRegex = /^[6-9]\d{9}$/;
+          const invalidMobiles = new Set([
+            "0000000000",
+            "9999999999",
+            "9876543210",
+            "9123456789",
+          ]);
+          const nameRegex = /^[A-Za-z\s\.\-]{2,100}$/;
+          const LocRegex = /^[A-Za-z\s\.\,\-]{5,100}$/;
 
-          if (!phoneRegex.test(contactNumber1)) {
-            alert("Contact number 1 must be a valid 10-digit number.");
+          // Validate owner name
+          if (!nameRegex.test(ownerName)) {
+            alert(
+              "Owner name must contain only letters, spaces, hyphens, or dots (2–100 characters)."
+            );
             return;
           }
 
-          if (contactNumber2 && !phoneRegex.test(contactNumber2)) {
-            alert("Contact number 2 must be a valid 10-digit number.");
+          if (!LocRegex.test(address)) {
+            alert("Enter a Valid Adress");
             return;
+          }
+
+          // Validate member count
+          if (isNaN(memberCount) || memberCount <= 0) {
+            alert("Please enter a valid number of household members.");
+            return;
+          }
+
+          // Validate contact number 1
+          if (
+            !phoneRegex.test(contactNumber1) ||
+            invalidMobiles.has(contactNumber1)
+          ) {
+            alert(
+              "Contact number 1 must be a valid Indian mobile number (not a dummy/fake number)."
+            );
+            return;
+          }
+
+          // Validate contact number 2 if provided
+          if (contactNumber2) {
+            if (
+              !phoneRegex.test(contactNumber2) ||
+              invalidMobiles.has(contactNumber2)
+            ) {
+              alert(
+                "Contact number 2 must be a valid Indian mobile number (not a dummy/fake number)."
+              );
+              return;
+            }
           }
 
           const contactNumbers = [contactNumber1, contactNumber2].filter(
@@ -207,7 +254,7 @@
                 );
                 window.location.href = "/";
               } else {
-                alert("Error creating household.");
+                alert("Error: " + (data.detail || "Unknown error occurred."));
               }
             })
             .catch((error) => {

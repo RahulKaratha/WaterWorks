@@ -163,6 +163,7 @@
             <a href="/household/add">Add Households</a>
             <a href="/swap">Swap Supply</a>
             <a href="/requests">View Requests</a>
+            <a href="/cutoffs">Cutoffs</a>
           </div>
         </div>
         <div class="update-bill-box">
@@ -223,12 +224,73 @@
             <th>Supply Status</th>
             <th>Location</th>
             <th>Last Payment</th>
+            <th>Contact No(s)</th>
+            <!-- NEW COLUMN -->
           </tr>
         </thead>
         <tbody id="householdBody"></tbody>
       </table>
     </div>
 
-    <script src="/static/script.js"></script>
+    <script>
+      document.getElementById("filterOption").addEventListener("change", () => {
+        const option = document.getElementById("filterOption").value;
+        document.getElementById("meterInput").style.display =
+          option === "meter" ? "inline" : "none";
+        document.getElementById("locationInput").style.display =
+          option === "location" ? "inline" : "none";
+      });
+
+      async function fetchData() {
+        const option = document.getElementById("filterOption").value;
+        let url = "/households/";
+
+        if (option === "meter") {
+          const meter = document.getElementById("meterInput").value;
+          if (!meter) return alert("Please enter a meter number");
+          url = `/household/?meter_no=${meter}`;
+        } else if (option === "location") {
+          const location = document.getElementById("locationInput").value;
+          if (!location) return alert("Please select a location");
+          url = `/households/${location}`;
+        }
+
+        try {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error("Failed to fetch data");
+          const data = await res.json();
+
+          renderHouseholdTable(Array.isArray(data) ? data : [data]);
+        } catch (err) {
+          alert(err.message);
+        }
+      }
+
+      function renderHouseholdTable(data) {
+        const tbody = document.getElementById("householdBody");
+        tbody.innerHTML = "";
+
+        data.forEach((household) => {
+          const row = document.createElement("tr");
+
+          row.innerHTML = `
+            <td>${household.meter_no}</td>
+            <td>${household.owner_name}</td>
+            <td>${household.address || ""}</td>
+            <td>${household.members_count}</td>
+            <td>${household.water_allowed ?? "N/A"}</td>
+            <td>${household.water_used ?? "N/A"}</td>
+            <td>${household.supply_status}</td>
+            <td>${household.location_name}</td>
+            <td>${household.last_payment?.split("T")[0] ?? "N/A"}</td>
+            <td>${(household.contacts || [])
+              .map((c) => c.contact_number)
+              .join(", ")}</td>
+          `;
+
+          tbody.appendChild(row);
+        });
+      }
+    </script>
   </body>
 </html>

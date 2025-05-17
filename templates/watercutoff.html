@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Water Cutoff Records</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 40px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 10px;
+        text-align: left;
+      }
+      th {
+        background-color: #f2f2f2;
+      }
+      input[type="date"] {
+        padding: 5px;
+        width: 160px;
+      }
+      button {
+        padding: 6px 12px;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+      button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Water Cutoff Records</h1>
+
+    <table id="cutoffTable">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Cutoff Date</th>
+          <th>Reason</th>
+          <th>Meter No</th>
+          <th>Restoration Date</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Records will be injected here -->
+      </tbody>
+    </table>
+
+    <script>
+      const today = new Date().toISOString().split("T")[0];
+      const maxDate = new Date();
+      maxDate.setFullYear(maxDate.getFullYear() + 1);
+      const maxDateStr = maxDate.toISOString().split("T")[0];
+
+      // Create table rows dynamically
+      function createRow(record) {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${record.id}</td>
+          <td>${record.cutoff_date}</td>
+          <td>${record.reason}</td>
+          <td>${record.meter_no || "N/A"}</td>
+          <td>
+            <input 
+              type="date" 
+              id="restore-${record.id}" 
+              min="${today}" 
+              max="${maxDateStr}" 
+              value="${record.restoration_date || ""}">
+          </td>
+          <td>
+            <button onclick="submitRestoration(${record.id})">Submit</button>
+          </td>
+        `;
+        return row;
+      }
+
+      // Fetch all water cutoff records
+      function loadCutoffRecords() {
+        fetch("/watercutoff")
+          .then((res) => res.json())
+          .then((data) => {
+            const tbody = document.querySelector("#cutoffTable tbody");
+            tbody.innerHTML = "";
+            data.forEach((record) => {
+              tbody.appendChild(createRow(record));
+            });
+          })
+          .catch((err) => {
+            alert("Error fetching data: " + err.message);
+          });
+      }
+
+      function submitRestoration(id) {
+        const input = document.getElementById(`restore-${id}`);
+        const selectedDate = input.value;
+
+        // Client-side validation
+        const selDate = new Date(selectedDate);
+        const now = new Date();
+        const oneYearLater = new Date();
+        oneYearLater.setFullYear(now.getFullYear() + 1);
+        now.setHours(0, 0, 0, 0); // Normalize to midnight
+
+        if (!selectedDate) {
+          alert("Please select a restoration date.");
+          return;
+        }
+
+        if (selDate < now) {
+          alert("Restoration date cannot be in the past.");
+          return;
+        }
+
+        if (selDate > oneYearLater) {
+          alert("Restoration date cannot be more than 1 year from today.");
+          return;
+        }
+
+        // Send the update request to the server
+        fetch(`/watercutoff/${id}/restore`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ restoration_date: selectedDate }),
+        })
+          .then((res) => {
+            if (!res.ok) {
+              return res.json().then((err) => {
+                // Check if response contains 'detail' (from backend)
+                const errorMessage =
+                  err.detail || err.message || "Unknown error";
+                throw new Error(errorMessage);
+              });
+            }
+            return res.json(); // Return the response JSON if everything is OK
+          })
+          .then((data) => {
+            // On success, show the updated message
+            alert(`Restoration date updated for record ID ${data.id}`);
+            loadCutoffRecords(); // Reload the table
+          })
+          .catch((err) => {
+            // Handle errors in the UI
+            alert("Error: " + err.message);
+          });
+      }
+
+      // Load records when the page loads
+      loadCutoffRecords();
+    </script>
+  </body>
+</html>

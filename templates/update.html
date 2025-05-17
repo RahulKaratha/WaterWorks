@@ -93,10 +93,7 @@
           <label for="supplyStatus">Supply Status</label>
           <input type="text" id="supplyStatus" name="supplyStatus" />
         </div>
-        <div class="form-group">
-          <label for="locationName">Location Name</label>
-          <input type="text" id="locationName" name="locationName" />
-        </div>
+
         <div class="form-group">
           <label for="contact1">Contact Number 1</label>
           <input type="text" id="contact1" name="contact1" />
@@ -113,6 +110,18 @@
     <script>
       let currentMeterNo = null;
 
+      // Validation patterns
+      const phoneRegex = /^[6-9]\d{9}$/;
+      const invalidMobiles = new Set([
+        "0000000000",
+        "9999999999",
+        "9876543210",
+        "9123456789",
+      ]);
+      const nameRegex = /^[A-Za-z\s.\-]{2,100}$/;
+      const LocRegex = /^[A-Za-z\s.,\-]{5,100}$/;
+      const addressRegex = /^[A-Za-z0-9\s.,\-\/]{5,200}$/;
+
       document
         .getElementById("lookupForm")
         .addEventListener("submit", function (e) {
@@ -126,7 +135,6 @@
               return response.json();
             })
             .then((data) => {
-              // Populate fields with existing values
               document.getElementById("ownerName").value =
                 data.owner_name || "";
               document.getElementById("address").value = data.address || "";
@@ -136,8 +144,7 @@
                 data.water_allowed || "";
               document.getElementById("supplyStatus").value =
                 data.supply_status || "";
-              document.getElementById("locationName").value =
-                data.location_name || "";
+
               document.getElementById("contact1").value =
                 data.contacts[0] || "";
               document.getElementById("contact2").value =
@@ -154,30 +161,68 @@
         .getElementById("updateForm")
         .addEventListener("submit", function (e) {
           e.preventDefault();
-
-          const updateData = {};
-
           const getValue = (id) => document.getElementById(id).value.trim();
 
-          if (getValue("ownerName"))
-            updateData.owner_name = getValue("ownerName");
-          if (getValue("address")) updateData.address = getValue("address");
-          if (getValue("membersCount"))
-            updateData.members_count = Number(getValue("membersCount"));
-          if (getValue("waterAllowed"))
-            updateData.water_allowed = Number(getValue("waterAllowed"));
-          if (getValue("supplyStatus"))
-            updateData.supply_status = getValue("supplyStatus");
-          if (getValue("locationName"))
-            updateData.location_name = getValue("locationName");
+          const ownerName = getValue("ownerName");
+          const address = getValue("address");
+          const membersCount = getValue("membersCount");
+          const waterAllowed = getValue("waterAllowed");
+          const supplyStatus = getValue("supplyStatus");
+
+          const contact1 = getValue("contact1");
+          const contact2 = getValue("contact2");
+
+          // Validations
+          if (ownerName && !nameRegex.test(ownerName)) {
+            alert(
+              "Invalid owner name. Only letters, spaces, hyphens, and dots allowed (2–100 chars)."
+            );
+            return;
+          }
+
+          if (address && !addressRegex.test(address)) {
+            alert(
+              "Invalid address. Use letters, numbers, and ,.-/ (5–200 chars)."
+            );
+            return;
+          }
+
+          if (
+            membersCount &&
+            (isNaN(membersCount) || Number(membersCount) <= 0)
+          ) {
+            alert("Please enter a valid number of household members.");
+            return;
+          }
+
+          if (contact1) {
+            if (!phoneRegex.test(contact1) || invalidMobiles.has(contact1)) {
+              alert("Contact 1 must be a valid Indian mobile number.");
+              return;
+            }
+          }
+
+          if (contact2) {
+            if (!phoneRegex.test(contact2) || invalidMobiles.has(contact2)) {
+              alert("Contact 2 must be a valid Indian mobile number.");
+              return;
+            }
+          }
+
+          // Build update data
+          const updateData = {};
+          if (ownerName) updateData.owner_name = ownerName;
+          if (address) updateData.address = address;
+          if (membersCount) updateData.members_count = Number(membersCount);
+          if (waterAllowed) updateData.water_allowed = Number(waterAllowed);
+          if (supplyStatus) updateData.supply_status = supplyStatus;
 
           const contacts = [];
-          if (getValue("contact1"))
-            contacts.push({ contact_number: getValue("contact1") });
-          if (getValue("contact2"))
-            contacts.push({ contact_number: getValue("contact2") });
+          if (contact1) contacts.push({ contact_number: contact1 });
+          if (contact2) contacts.push({ contact_number: contact2 });
           if (contacts.length) updateData.contacts = contacts;
 
+          // Submit update
           fetch(`/households/?meter_no=${currentMeterNo}`, {
             method: "PATCH",
             headers: {

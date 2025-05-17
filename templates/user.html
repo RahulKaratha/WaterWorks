@@ -106,16 +106,9 @@
         background-color: green;
       }
 
-      @media (max-width: 600px) {
-        .container {
-          margin: 10px;
-          padding: 15px;
-        }
-
-        h2,
-        h3 {
-          font-size: 1.3rem;
-        }
+      h2,
+      h3 {
+        font-size: 1.3rem;
       }
     </style>
   </head>
@@ -216,7 +209,10 @@
             <strong>Water Allowed:</strong> ${data.water_allowed} L<br/>
             <strong>Water Used:</strong> ${data.water_used} L<br/>
             <strong>Status:</strong> ${data.supply_status}<br/>
-            <strong>Last Payment:</strong> ${data.last_payment}
+            <strong>Last Payment:</strong> ${data.last_payment}<br/>
+            <strong>Contact Numbers:</strong> ${data.contacts
+              .map((contact) => contact.contact_number)
+              .join(", ")}<br/>
           </div>
         `;
         } catch (err) {
@@ -226,7 +222,7 @@
         }
 
         try {
-          const res = await fetch(`/servicerequest/${meterNo}`);
+          const res = await fetch(`/requests/view/${meterNo}`);
           const requests = await res.json();
           if (!Array.isArray(requests) || requests.length === 0) {
             throw new Error("No service requests found.");
@@ -235,14 +231,14 @@
           document.getElementById("serviceRequests").innerHTML = requests
             .map(
               (req) => `
-          <div class="card">
-            <strong>Type:</strong> ${req.request_type}<br/>
-            <strong>Status:</strong> ${req.request_status}<br/>
-            <strong>Date:</strong> ${new Date(
-              req.request_date
-            ).toLocaleString()}
-          </div>
-        `
+            <div class="card">
+              <strong>Type:</strong> ${req.request_type}<br/>
+              <strong>Status:</strong> ${req.request_status}<br/>
+              <strong>Date:</strong> ${new Date(
+                req.request_date
+              ).toLocaleString()}
+            </div>
+          `
             )
             .join("");
         } catch (err) {
@@ -277,12 +273,12 @@
           document.getElementById("cutoffInfo").innerHTML = cutoffs
             .map(
               (c) => `
-          <div class="card">
-            <strong>Cutoff Date:</strong> ${c.cutoff_date}<br/>
-            <strong>Reason:</strong> ${c.reason}<br/>
-            <strong>Restored:</strong> ${c.restoration_date || "Pending"}
-          </div>
-        `
+            <div class="card">
+              <strong>Cutoff Date:</strong> ${c.cutoff_date}<br/>
+              <strong>Reason:</strong> ${c.reason}<br/>
+              <strong>Restored:</strong> ${c.restoration_date || "Pending"}
+            </div>
+          `
             )
             .join("");
         } catch (err) {

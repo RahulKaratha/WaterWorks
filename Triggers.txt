@@ -401,6 +401,27 @@ WHEN (OLD.supply_id IS DISTINCT FROM NEW.supply_id)
 EXECUTE FUNCTION adjust_water_allowed_after_supply_swap();
 
 
+8. Set water allowed and water used after swapping lines to empty 
+
+CREATE OR REPLACE FUNCTION reset_water_if_unlinked()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Check if this waterboard supply_id is not linked to any location
+    IF NOT EXISTS (
+        SELECT 1 FROM location WHERE supply_id = NEW.supply_id
+    ) THEN
+        -- Set water_allowed and water_used to 0
+        NEW.water_allowed := 0;
+        NEW.water_used := 0;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_reset_water_if_unlinked
+BEFORE INSERT OR UPDATE ON waterboard
+FOR EACH ROW
+EXECUTE FUNCTION reset_water_if_unlinked();
 
 
 

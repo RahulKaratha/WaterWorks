@@ -170,10 +170,22 @@
             return;
           }
 
+          // Sort requests: resolved ones go to the bottom
+          const resolvedRequests = [];
+          const pendingRequests = [];
+          data.forEach((request) => {
+            if (request.request_status === "Resolved") {
+              resolvedRequests.push(request);
+            } else {
+              pendingRequests.push(request);
+            }
+          });
+
           const tableBody = document.querySelector("#serviceRequests tbody");
           tableBody.innerHTML = ""; // Clear any previous data
 
-          data.forEach((request) => {
+          // Insert pending requests first
+          [...pendingRequests, ...resolvedRequests].forEach((request) => {
             const row = document.createElement("tr");
             row.innerHTML = `
               <td>${request.meter_no}</td>
@@ -182,12 +194,13 @@
               request.request_status
             }</td>
               <td>
-                <button onclick="updateStatus(${request.meter_no}, '${
-              request.request_type
-            }', 'Resolved')" class="resolved">Resolve</button>
-                <button onclick="updateStatus(${request.meter_no}, '${
-              request.request_type
-            }', 'Rejected')" class="rejected">Reject</button>
+                ${
+                  request.request_status !== "Resolved"
+                    ? `
+                <button onclick="updateStatus(${request.meter_no}, '${request.request_type}', 'Resolved')" class="resolved">Resolve</button>
+                <button onclick="updateStatus(${request.meter_no}, '${request.request_type}', 'Rejected')" class="rejected">Reject</button>`
+                    : ""
+                }
               </td>
             `;
             tableBody.appendChild(row);

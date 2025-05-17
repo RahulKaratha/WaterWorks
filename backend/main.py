@@ -12,10 +12,14 @@ from enum import Enum
 from sqlalchemy.sql import func
 from pydanticModels import *
 import random
+import re
 from sqlalchemy import asc
 import models
 from models import Household,Waterboard,WaterCutoff,Fine,ServiceRequest,Location,Contacts
 from database import engine, SessionLocal
+from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import aliased
+from sqlalchemy import or_
 
 
 
@@ -98,28 +102,43 @@ def serve_dashboard(request: Request):
 def serve_dashboard(request: Request):
     return templates.TemplateResponse("add.html", {"request": request})
 
+@app.get("/cutoffs", response_class=HTMLResponse)
+def serve_dashboard(request: Request):
+    return templates.TemplateResponse("watercutoff.html", {"request": request})
+
+
+
+
+
 @app.get("/households/", response_model=List[HouseholdOut])
 def get_all_households(db: Session = Depends(get_db)):
-    households = db.query(Household).all()  # Retrieve all household records
+    households = db.query(Household).options(selectinload(Household.contacts)).all()
     return households
+
 
 @app.get("/households/{location_name}", response_model=List[HouseholdOut])
 def get_households_by_location(location_name: str, db: Session = Depends(get_db)):
-    households = db.query(models.Household).filter(models.Household.location_name == location_name).all()
-    
+    households = (
+        db.query(Household)
+        .filter(Household.location_name == location_name)
+        .options(selectinload(Household.contacts))
+        .all()
+    )
     if not households:
         raise HTTPException(status_code=404, detail="No households found for the specified location")
-    
     return households
 
 
 @app.get("/household/", response_model=HouseholdOut)
 def get_household_by_meter_no(meter_no: int, db: Session = Depends(get_db)):
-    household = db.query(models.Household).filter(models.Household.meter_no == meter_no).first()
-
+    household = (
+        db.query(Household)
+        .filter(Household.meter_no == meter_no)
+        .options(selectinload(Household.contacts))
+        .first()
+    )
     if not household:
         raise HTTPException(status_code=404, detail="Household not found with the given meter number")
-
     return household
 
 @app.get("/households/delete-info/{meter_no}")
@@ -139,14 +158,35 @@ def get_household(meter_no: int, db: Session = Depends(get_db)):
         "contacts": [c.contact_number for c in household.contacts],
     }
 
+def is_valid_indian_mobile(number: str) -> bool:
+    if not re.fullmatch(r"[6-9]\d{9}", number):
+        return False
+    
+    if number == number[0] * 10:
+        return False
+    if number in {"9876543210", "9123456789"}:
+        return False
+    return True
+
+def is_valid_name(name: str) -> bool:
+    # Only letters, spaces, hyphens, and periods allowed
+    if not re.fullmatch(r"[A-Za-z\s\.\-]{2,100}", name):
+        return False
+    return True
+
+
 @app.post("/households/", status_code=201)
 def create_household(household: HouseholdCreate, db: Session = Depends(get_db)):
-    # Ensure that the location exists
+    # Ensure location exists
     location = db.query(Location).filter_by(location_name=household.location_name).first()
     if not location:
         raise HTTPException(status_code=400, detail="Location does not exist")
 
-    # Generate unique 7-digit meter number
+    # Validate owner name
+    if not is_valid_name(household.owner_name):
+        raise HTTPException(status_code=400, detail=f"Invalid owner name: {household.owner_name}")
+
+    # Generate unique meter number
     def generate_unique_meter_no():
         attempts = 0
         while attempts < 10_000:
@@ -166,11 +206,13 @@ def create_household(household: HouseholdCreate, db: Session = Depends(get_db)):
             address=household.address,
             members_count=household.members_count,
             location_name=household.location_name,
-            water_used=1
-          
+            water_used=0
         )
 
         for contact in household.contacts:
+            if not is_valid_indian_mobile(contact.contact_number):
+                raise HTTPException(status_code=400, detail=f"Invalid contact number: {contact.contact_number}")
+
             new_contact = Contacts(
                 meter_no=meter_no,
                 contact_number=contact.contact_number
@@ -190,6 +232,7 @@ def create_household(household: HouseholdCreate, db: Session = Depends(get_db)):
     except SQLAlchemyError as e:
         db.rollback()
         raise HTTPException(status_code=500, detail="Database error occurred: " + str(e))
+    
 
 @app.get("/check_meter/{meter_no}")
 def check_meter_number(meter_no: int, db: Session = Depends(get_db)):
@@ -278,8 +321,6 @@ def get_all_service_requests(db: Session = Depends(get_db)):
 
     return requests
 
-
-
 @app.post("/requests/raise", response_model=ServiceRequestCreate)
 async def raise_service_request(request: ServiceRequestCreate, db: Session = Depends(get_db)):
     # Logic for raising or updating a service request (no auth yet)
@@ -289,23 +330,33 @@ async def raise_service_request(request: ServiceRequestCreate, db: Session = Dep
     
     # Check if request already exists for this meter_no and request_type
     existing_request = db.query(ServiceRequest).filter_by(meter_no=request.meter_no, request_type=request.request_type).first()
+    
     if existing_request:
-        # Update request_date if exists
-        existing_request.request_date = func.now()
-        db.commit()
-        return existing_request
+        # If the existing request is resolved or completed, update the status to "Pending" and the request date
+        if existing_request.request_status != "Pending":
+            existing_request.request_status = "Pending"  # Update to Pending if it's not already in pending status
+            existing_request.request_date = func.now()  # Update the request date
+            db.commit()
+            db.refresh(existing_request)  # Refresh to get the updated record
+            return existing_request
+        else:
+            # If the request is already pending, just update the request date
+            existing_request.request_date = func.now()
+            db.commit()
+            db.refresh(existing_request)  # Refresh to get the updated record
+            return existing_request
     else:
-        # Create a new request
+        # If no existing request, create a new one
         new_request = ServiceRequest(
             meter_no=request.meter_no,
             request_type=request.request_type,
-            
+            request_date=func.now(),  # Setting the request date as the current time
+            request_status="Pending"  # Set the status to "Pending"
         )
         db.add(new_request)
         db.commit()
-        db.refresh(new_request)
+        db.refresh(new_request)  # Refresh to get the newly created record
         return new_request
-    
 
 @app.patch("/servicerequest/{meter_no}/{request_type}")
 def update_status(
@@ -340,9 +391,19 @@ async def view_requests(db: Session = Depends(get_db)):
     requests=db.query(ServiceRequest).all()
     return requests
 
+@app.get("/requests/view/{meterno}",response_model=List[ServiceRequestOut])
+async def view_individual_requests(meterno:int,db: Session = Depends(get_db)):
+    requests=db.query(ServiceRequest).filter_by(meter_no=meterno).all()
+    return requests
+
 @app.get("/fines/{meterno}",response_model=FineOut)
 async def view_fine(meterno:int, db: Session = Depends(get_db)):
     fineInfo=db.query(models.Fine).filter_by(meter_no=meterno).first()
+    return fineInfo
+
+@app.get("/fines/",response_model=FineOut)
+async def view_all_fine( db: Session = Depends(get_db)):
+    fineInfo=db.query(models.Fine).all()
     return fineInfo
 
 @app.patch("/fines/{meter_no}/mark-paid", status_code=200)
@@ -367,9 +428,15 @@ def mark_fine_as_paid(meter_no: int, db: Session = Depends(get_db)):
         "status": fine.payment_status
     }
 
+
 @app.get("/watercutoff", response_model=List[WaterCutoffOut])
 def get_all_water_cutoffs(db: Session = Depends(get_db)):
-    return db.query(WaterCutoff).all()
+    # Subquery to check for pending fines
+    subquery = db.query(Fine.meter_no).filter(Fine.payment_status == 'Pending')
+
+    # Query WaterCutoff table and exclude records where there's a pending fine
+    return db.query(WaterCutoff).filter(~WaterCutoff.meter_no.in_(subquery)).all()
+
 
 @app.get("/watercutoff/{meter_no}", response_model=List[WaterCutoffOut])
 def get_cutoff_by_meter_no(meter_no: int, db: Session = Depends(get_db)):
@@ -388,6 +455,28 @@ def update_restoration_date(cutoff_id: int, restoration_date: date, db: Session 
     db.commit()
     db.refresh(record)
     return {"message": "Restoration date updated", "id": record.id, "restoration_date": record.restoration_date}
+
+@app.patch("/watercutoff/{cutoff_id}/restore", status_code=200)
+def update_restoration_date(cutoff_id: int, payload: RestorationUpdate, db: Session = Depends(get_db)):
+    record = db.query(WaterCutoff).filter(WaterCutoff.id == cutoff_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Cutoff record not found")
+
+    # Date validation
+    if payload.restoration_date < date.today():
+        raise HTTPException(status_code=400, detail="Restoration date cannot be in the past.")
+    
+    if payload.restoration_date > date.today().replace(year=date.today().year + 1):
+        raise HTTPException(status_code=400, detail="Restoration date cannot be more than 1 year in the future.")
+
+    record.restoration_date = payload.restoration_date
+    db.commit()
+    db.refresh(record)
+    return {
+        "message": "Restoration date updated",
+        "id": record.id,
+        "restoration_date": record.restoration_date
+    }
 
 
 @app.post("/location/swap-supply/")

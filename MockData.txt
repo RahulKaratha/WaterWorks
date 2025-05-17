@@ -2,33 +2,33 @@
 
 INSERT INTO waterboard (supply_id, water_available, water_used, water_allowed)
 VALUES
-    (100, 100000, 0, 0),
-    (101, 115000, 0, 0),
-    (102, 91000, 0, 0),
-    (103, 123000, 0, 0),
-    (104, 88000, 0, 0),
-    (105, 130000, 0, 0),
-    (106, 70000, 0, 0),
-    (107, 99000, 0, 0),
-    (108, 108000, 0, 0),
-    (109, 94000, 0, 0);
+    (100, 400000, 0, 0),
+    (101, 412000, 0, 0),
+    (102, 430000, 0, 0),
+    (103, 413000, 0, 0),
+    (104, 410000, 0, 0),
+    (105, 500000, 0, 0),
+    (106, 360000, 0, 0),
+    (107, 380000, 0, 0),
+    (108, 420000, 0, 0),
+    (109, 450000, 0, 0);
 
 2. Location Mock Data
 
-INSERT INTO location (location_name, supply_id, total_household, location_status)
+INSERT INTO location (location_name, supply_id)
 VALUES
-    ('North',   100, 1, 'Sufficient'),
-    ('South',   101, 1, 'Sufficient'),
-    ('East',    102, 1, 'Sufficient'),
-    ('West',    103, 1, 'Sufficient'),
-    ('Central', 104, 1, 'Sufficient');
+    ('North',   100),
+    ('South',   101),
+    ('East',    102),
+    ('West',    103),
+    ('Central', 104);
 
 3. Household Mock Data
 
 -- Household Data (100 records)
 INSERT INTO household (meter_no, owner_name, address, members_count, water_used, supply_status, location_name, last_payment)
 VALUES
-(1000001, 'Arvind Kumar', 'North Road, Mysore', 4, 13500, 'Active', 'North', '2025-05-01'),
+(1000001, 'Arvind Kumar', 'North Road, Mysore', 4, 13500, 'Active', 'North', '2025-01-01'),
 (1000002, 'Neha Singh', 'South Street, Mysore', 3, 10800, 'Active', 'South', '2025-05-01'),
 (1000003, 'Pradeep Reddy', 'East Lane, Mysore', 6, 16800, 'Active', 'East', '2025-05-01'),
 (1000004, 'Vani Sharma', 'West Avenue, Mysore', 5, 15300, 'Active', 'West', '2025-05-01'),
@@ -47,7 +47,7 @@ VALUES
 (1000016, 'Geeta Rao', 'North Road, Mysore', 2, 6000, 'Active', 'North', '2025-05-01'),
 (1000017, 'Kiran Malhotra', 'South Street, Mysore', 4, 12000, 'Active', 'South', '2025-05-01'),
 (1000018, 'Vishal Sharma', 'East Lane, Mysore', 7, 21000, 'Active', 'East', '2025-05-01'),
-(1000019, 'Tanya Gupta', 'West Avenue, Mysore', 6, 18000, 'Active', 'West', '2025-05-01'),
+(1000019, 'Tanya Gupta', 'West Avenue, Mysore', 6, 18000, 'Active', 'West', '2025-03-01'),
 (1000020, 'Ashwin Kumar', 'Central Square, Mysore', 5, 13500, 'Active', 'Central', '2025-05-01'),
 
 (1000021, 'Priya Nair', 'North Road, Mysore', 2, 7500, 'Active', 'North', '2025-05-01'),
@@ -74,12 +74,12 @@ VALUES
 
 (1000041, 'Vineet Joshi', 'North Road, Mysore', 2, 8500, 'Active', 'North', '2025-05-01'),
 (1000042, 'Sonal Kumar', 'South Street, Mysore', 3, 11000, 'Active', 'South', '2025-05-01'),
-(1000043, 'Pravin Patel', 'East Lane, Mysore', 4, 12600, 'Active', 'East', '2025-05-01'),
+(1000043, 'Pravin Patel', 'East Lane, Mysore', 4, 12600, 'Active', 'East', '2025-01-01'),
 (1000044, 'Sunil Sharma', 'West Avenue, Mysore', 5, 13800, 'Active', 'West', '2025-05-01'),
 (1000045, 'Deepa Verma', 'Central Square, Mysore', 6, 18000, 'Active', 'Central', '2025-05-01'),
 (1000046, 'Ashok Babu', 'North Road, Mysore', 2, 6900, 'Active', 'North', '2025-05-01'),
 (1000047, 'Pratibha Rani', 'South Street, Mysore', 4, 12000, 'Inactive', 'South', '2025-05-01'),
-(1000048, 'Jatin Yadav', 'East Lane, Mysore', 3, 10500, 'Active', 'East', '2025-05-01'),
+(1000048, 'Jatin Yadav', 'East Lane, Mysore', 3, 10500, 'Active', 'East', '2025-02-01'),
 (1000049, 'Rashmi Gupta', 'West Avenue, Mysore', 2, 6400, 'Active', 'West', '2025-05-01'),
 (1000050, 'Rajni Devi', 'Central Square, Mysore', 4, 12800, 'Active', 'Central', '2025-05-01'),
 
@@ -97,7 +97,7 @@ VALUES
 (1000062, 'Kavitha Reddy', 'South Street, Mysore', 3, 10500, 'Inactive', 'South', '2025-05-01'),
 (1000063, 'Rajesh Gupta', 'East Lane, Mysore', 4, 13000, 'Active', 'East', '2025-05-01'),
 (1000064, 'Gita Sharma', 'West Avenue, Mysore', 5, 14500, 'Active', 'West', '2025-05-01'),
-(1000065, 'Anjali Singh', 'Central Square, Mysore', 6, 17500, 'Active', 'Central', '2025-05-01'),
+(1000065, 'Anjali Singh', 'Central Square, Mysore', 6, 17500, 'Active', 'Central', '2025-03-01'),
 (1000066, 'Narendra Yadav', 'North Road, Mysore', 4, 12100, 'Active', 'North', '2025-05-01'),
 (1000067, 'Amit Kumar', 'South Street, Mysore', 3, 9500, 'Inactive', 'South', '2025-05-01'),
 (1000068, 'Sunita Patil', 'East Lane, Mysore', 5, 13500, 'Active', 'East', '2025-05-01'),
@@ -121,7 +121,7 @@ VALUES
 (1000084, 'Vinod Verma', 'West Avenue, Mysore', 2, 5900, 'Active', 'West', '2025-05-01'),
 (1000085, 'Tanya Reddy', 'Central Square, Mysore', 4, 13000, 'Active', 'Central', '2025-05-01'),
 (1000086, 'Anjali Patel', 'North Road, Mysore', 5, 14000, 'Inactive', 'North', '2025-05-01'),
-(1000087, 'Rahul Kumar', 'South Street, Mysore', 6, 17700, 'Active', 'South', '2025-05-01'),
+(1000087, 'Rahul Kumar', 'South Street, Mysore', 6, 17700, 'Active', 'South', '2025-02-01'),
 (1000088, 'Harish Gupta', 'East Lane, Mysore', 4, 11900, 'Active', 'East', '2025-05-01'),
 (1000089, 'Pooja Devi', 'West Avenue, Mysore', 3, 9800, 'Active', 'West', '2025-05-01'),
 (1000090, 'Ravi Reddy', 'Central Square, Mysore', 6, 19000, 'Active', 'Central', '2025-05-01'),
@@ -275,3 +275,24 @@ INSERT INTO contacts (meter_no, contact_number) VALUES (1000100, '9123456785');
 INSERT INTO contacts (meter_no, contact_number) VALUES (1000100, '9345098767');
 
 
+update household set water_used=water_used+5000 where location_name='South';
+
+update household set water_used=water_used+7000 where location_name='North';
+
+
+select apply_fines_and_cutoffs();
+
+
+
+
+UPDATE household
+SET water_allowed = FLOOR((3000 + 4000 * members_count) *
+    CASE location.location_status
+        WHEN 'Surplus' THEN 1.0
+        WHEN 'Sufficient' THEN 1.0
+        WHEN 'Shortage' THEN 0.85
+        WHEN 'Scarcity' THEN 0.7
+        ELSE 1.0
+    END)
+FROM location
+WHERE household.location_name = location.location_name;

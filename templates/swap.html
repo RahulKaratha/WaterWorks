@@ -231,11 +231,9 @@
         <tr>
           <th>Supply ID</th>
           <th>Water Available</th>
-          <th>Water Allowed</th>
-          <th>Water Used</th>
-          <th>Balance</th>
         </tr>
       </thead>
+
       <tbody></tbody>
     </table>
 
@@ -327,12 +325,9 @@
 
         data.forEach((supply) => {
           const row = `<tr>
-            <td>${supply.supply_id}</td>
-            <td>${supply.water_available}</td>
-            <td>${supply.water_allowed}</td>
-            <td>${supply.water_used}</td>
-            <td>${supply.balance}</td>
-          </tr>`;
+    <td>${supply.supply_id}</td>
+    <td>${supply.water_available}</td>
+  </tr>`;
           tbody.insertAdjacentHTML("beforeend", row);
         });
       }

@@ -58,6 +58,7 @@ class HouseholdOut(BaseModel):
     supply_status: str
     location_name: str
     last_payment: date
+    contacts: List[ContactOut] = []
 
     class Config:
         from_attributes = True
@@ -176,3 +177,8 @@ class WaterboardSimple(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+
+class RestorationUpdate(BaseModel):
+    restoration_date: date
